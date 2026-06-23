@@ -1,0 +1,4 @@
+node_modules/
+.env
+project-data.json
+outage-analysis-report.html

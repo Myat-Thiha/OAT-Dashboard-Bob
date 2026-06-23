@@ -1,0 +1,14 @@
+{
+  "name": "outage-analysis-bob-skill",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Bob skill for the Db2 for z/OS Outage Analysis GitHub Project dashboard",
+  "scripts": {
+    "fetch": "node .bob/skills/outage-analysis/fetch-project.js > project-data.json",
+    "report": "node generate-report.js",
+    "dashboard": "npm run fetch && npm run report"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
