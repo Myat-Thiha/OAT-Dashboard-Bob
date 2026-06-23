@@ -1,0 +1,126 @@
+name: Outage Analysis Dashboard
+
+on:
+  # Manual "Run workflow" button on the Actions tab
+  workflow_dispatch:
+    inputs:
+      post_issue:
+        description: "Post the summary as a new GitHub Issue?"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+  # Optional: run automatically on a schedule (uncomment to enable)
+  # schedule:
+  #   - cron: "0 9 * * 1"   # Every Monday at 09:00 UTC
+
+jobs:
+  generate-dashboard:
+    name: Generate Outage Analysis Report
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      issues: write       # needed to post the summary as a GitHub Issue
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch project board data
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_ID: ${{ secrets.PROJECT_ID }}
+          GITHUB_API_URL: ${{ secrets.GITHUB_API_URL || 'https://api.github.com/graphql' }}
+        run: node .bob/skills/outage-analysis/fetch-project.js > project-data.json
+
+      - name: Generate HTML report
+        run: node generate-report.js
+
+      - name: Upload HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: outage-analysis-report
+          path: outage-analysis-report.html
+          retention-days: 30
+
+      - name: Post summary as GitHub Issue
+        if: ${{ github.event.inputs.post_issue == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Outage Analysis Dashboard — $(date +'%Y-%m-%d')"
+          BODY=$(node -e "
+            import { readFileSync } from 'fs';
+            const data = JSON.parse(readFileSync('project-data.json', 'utf8'));
+            const { projectTitle, totalItems, items } = data;
+
+            const byStatus = items.reduce((acc, i) => {
+              const s = i.status || 'Unset';
+              acc[s] = (acc[s] || 0) + 1;
+              return acc;
+            }, {});
+            const statusRows = Object.entries(byStatus)
+              .sort((a,b) => b[1]-a[1])
+              .map(([s,c]) => \`| \${s} | \${c} |\`)
+              .join('\n');
+
+            const byCat = items.reduce((acc, i) => {
+              const c = i.outageCategory || '(Uncategorized)';
+              acc[c] = (acc[c] || 0) + 1;
+              return acc;
+            }, {});
+            const catRows = Object.entries(byCat)
+              .filter(([c]) => c !== '(Uncategorized)')
+              .sort((a,b) => b[1]-a[1])
+              .slice(0,5)
+              .map(([c,n]) => \`| \${c} | \${n} |\`)
+              .join('\n');
+            const uncategorized = byCat['(Uncategorized)'] || 0;
+
+            const resItems = items.filter(i => i.resiliencyApar || (i.labels||[]).includes('Resiliency Analysis'));
+
+            const lines = [
+              \`## \${projectTitle}\`,
+              \`**Generated:** \$(date +'%Y-%m-%d %H:%M UTC')  |  **Total items:** \${totalItems}\`,
+              '',
+              '### Status Breakdown',
+              '| Status | Count |',
+              '|--------|-------|',
+              statusRows,
+              '',
+              '### Top Outage Categories',
+              '| Category | Count |',
+              '|----------|-------|',
+              catRows,
+              \`\nUncategorized items: **\${uncategorized}**\`,
+              '',
+              \`### Resiliency Analysis Items: \${resItems.length}\`,
+              resItems.length
+                ? '| Title | Status | Assignees | Link |\n|-------|--------|-----------|------|\n' +
+                  resItems.map(i => \`| \${i.title} | \${i.status||''} | \${i.assignees||''} | \${i.issueUrl ? \`[\${i.issueUrl}](\${i.issueUrl})\` : 'N/A'} |\`).join('\n')
+                : '_None_',
+              '',
+              '> Full HTML report attached as a workflow artifact.',
+            ];
+            console.log(lines.join('\n'));
+          " --input-type=module)
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "outage-analysis" 2>/dev/null || \
+          gh issue create \
+            --title "$TITLE" \
+            --body "$BODY"
