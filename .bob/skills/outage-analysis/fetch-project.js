@@ -88,6 +88,7 @@ query($projectId: ID!, $cursor: String) {
               title
               url
               body
+              state
               assignees(first: 10) { nodes { login } }
               labels(first: 10) { nodes { name } }
             }
@@ -99,6 +100,7 @@ query($projectId: ID!, $cursor: String) {
               title
               url
               body
+              state
               assignees(first: 10) { nodes { login } }
               labels(first: 10) { nodes { name } }
             }
@@ -228,6 +230,7 @@ function normalizeItem(node) {
     type:           content.url
                       ? (content.__typename === "PullRequest" ? "pull_request" : "issue")
                       : "draft",
+    issueState:     content.state?.toLowerCase() ?? null,
     // Prefer the content title; fall back to the "Title" project field for drafts.
     title:          content.title ?? fields["Title"] ?? "(no title)",
     status:         fields["Status"]          ?? null,

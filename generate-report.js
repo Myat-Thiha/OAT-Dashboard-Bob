@@ -77,6 +77,15 @@ const link = (url, text) =>
 const badge = (text, color) =>
   `<span class="badge" style="background:${color}">${esc(text)}</span>`;
 
+function titleCell(item) {
+  const text = esc(item.title);
+  const linked = item.issueUrl ? `<a href="${esc(item.issueUrl)}" target="_blank" rel="noopener">${text}</a>` : text;
+  const closed = item.issueState === "closed"
+    ? ` <span class="state-closed">closed</span>`
+    : "";
+  return linked + closed;
+}
+
 const STATUS_COLORS = {
   "Done":        "#1a7f37",
   "In Progress": "#bf8700",
@@ -130,7 +139,7 @@ function renderResiliencyTable() {
       <tbody>
         ${resiliencyItems.map((i) => `
           <tr>
-            <td>${link(i.issueUrl, i.title)}</td>
+            <td>${titleCell(i)}</td>
             <td>${statusBadge(i.status || "Unset")}</td>
             <td>${esc(i.assignees || i.oaAssignees || "—")}</td>
             <td>${esc(i.oaDates || "—")}</td>
@@ -144,14 +153,13 @@ function renderUncategorizedTable() {
   if (!uncategorizedItems.length) return `<p class="muted">All items are categorized.</p>`;
   return `
     <table>
-      <thead><tr><th>Title</th><th>Status</th><th>Assignees</th><th>Link</th></tr></thead>
+      <thead><tr><th>Title</th><th>Status</th><th>Assignees</th></tr></thead>
       <tbody>
         ${uncategorizedItems.map((i) => `
           <tr>
-            <td>${esc(i.title)}</td>
+            <td>${titleCell(i)}</td>
             <td>${statusBadge(i.status || "Unset")}</td>
             <td>${esc(i.assignees || i.oaAssignees || "—")}</td>
-            <td>${link(i.issueUrl, "View")}</td>
           </tr>`).join("")}
       </tbody>
     </table>`;
@@ -187,6 +195,7 @@ const html = `<!DOCTYPE html>
   .bar-wrap { display: inline-block; width: 80px; height: 8px; background: #e5e7eb; border-radius: 4px; vertical-align: middle; margin-right: 6px; }
   .bar { height: 8px; background: #3b82d4; border-radius: 4px; }
   .muted { color: #57606a; }
+  .state-closed { display: inline-block; font-size: 10px; font-weight: 600; color: #57606a; border: 1px solid #d0d7de; border-radius: 10px; padding: 1px 6px; vertical-align: middle; margin-left: 5px; }
   footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
 </style>
 </head>
