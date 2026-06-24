@@ -65,6 +65,23 @@ const resiliencyItems = items.filter(
 // Uncategorized items
 const uncategorizedItems = items.filter((i) => !i.outageCategory);
 
+// Year / month breakdown (based on oaDates field)
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// byYearMonth: { "2024": { "04": 2, "08": 3 }, ... }
+const byYearMonth = {};
+for (const item of items) {
+  if (!item.oaDates) continue;
+  const d = new Date(item.oaDates);
+  if (isNaN(d)) continue;
+  const y = String(d.getUTCFullYear());
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  if (!byYearMonth[y]) byYearMonth[y] = {};
+  byYearMonth[y][m] = (byYearMonth[y][m] || 0) + 1;
+}
+const years = Object.keys(byYearMonth).sort();
+const itemsWithDate = items.filter((i) => i.oaDates && !isNaN(new Date(i.oaDates))).length;
+
 // ---------------------------------------------------------------------------
 // HTML helpers
 // ---------------------------------------------------------------------------
@@ -165,6 +182,43 @@ function renderUncategorizedTable() {
     </table>`;
 }
 
+function renderYearMonthSection() {
+  if (!years.length) return `<p class="muted">No OA dates recorded.</p>`;
+
+  // Find the max count across all months for scaling the bars
+  const allCounts = Object.values(byYearMonth).flatMap((m) => Object.values(m));
+  const maxCount = Math.max(...allCounts);
+
+  return years.map((y) => {
+    const months = byYearMonth[y];
+    const yearTotal = Object.values(months).reduce((a, b) => a + b, 0);
+    const rows = Object.keys(months).sort().map((m) => {
+      const count = months[m];
+      const pct = Math.round((count / maxCount) * 100);
+      const monthLabel = MONTH_NAMES[parseInt(m, 10) - 1];
+      return `
+        <tr>
+          <td class="ym-month">${monthLabel}</td>
+          <td>
+            <div class="bar-wrap" style="width:120px">
+              <div class="bar" style="width:${pct}%"></div>
+            </div>
+          </td>
+          <td class="ym-count">${count}</td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <div class="year-block">
+        <div class="year-heading">${y} <span class="year-total">${yearTotal} item${yearTotal !== 1 ? "s" : ""}</span></div>
+        <table class="ym-table">
+          <thead><tr><th>Month</th><th>Volume</th><th>Count</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join("");
+}
+
 // ---------------------------------------------------------------------------
 // Assemble final HTML
 // ---------------------------------------------------------------------------
@@ -196,6 +250,13 @@ const html = `<!DOCTYPE html>
   .bar { height: 8px; background: #3b82d4; border-radius: 4px; }
   .muted { color: #57606a; }
   .state-closed { display: inline-block; font-size: 10px; font-weight: 600; color: #57606a; border: 1px solid #d0d7de; border-radius: 10px; padding: 1px 6px; vertical-align: middle; margin-left: 5px; }
+  .year-block { margin-bottom: 28px; }
+  .year-heading { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: #1f2328; }
+  .year-total { font-size: 12px; font-weight: 400; color: #57606a; margin-left: 6px; }
+  .ym-table { width: auto; }
+  .ym-table th { font-size: 11px; }
+  .ym-month { width: 40px; font-size: 13px; color: #57606a; }
+  .ym-count { width: 32px; text-align: right; font-size: 13px; padding-left: 10px; }
   footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
 </style>
 </head>
@@ -214,6 +275,9 @@ const html = `<!DOCTYPE html>
 
   <h2>Status Breakdown</h2>
   ${renderStatusTable()}
+
+  <h2>Activity by Year &amp; Month <span style="font-size:13px;font-weight:400;color:#57606a">(${itemsWithDate} of ${totalItems} items have an OA date)</span></h2>
+  ${renderYearMonthSection()}
 
   <h2>Top Outage Categories</h2>
   ${renderCategoryTable()}

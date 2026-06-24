@@ -61,6 +61,18 @@ Parse the JSON output and produce a report with the following sections in markdo
 Count items by `status` field. Show a table: Status | Count, sorted by count descending.
 Highlight any items with no status set ("Unset").
 
+### Activity by Year & Month
+Group items by the year and month of their `oaDates` field (format: `YYYY-MM-DD`). Ignore items where `oaDates` is null or unparseable.
+
+For each year (sorted ascending), show a sub-heading with the year and total item count for that year, followed by a table:
+
+| Month | Count |
+|-------|-------|
+| Jan   | 3     |
+| ...   | ...   |
+
+Sort months ascending within each year. After the tables, note how many items have no OA date.
+
 ### Top Outage Categories
 Count items by `outageCategory`. Show the top 5 as a table: Category | Count.
 Also report total uncategorized items (null or empty `outageCategory`).
