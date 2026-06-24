@@ -43,21 +43,11 @@ jobs:
       - name: Generate HTML report
         run: node generate-report.js
 
-      - name: Generate executive briefing
-        run: node generate-executive-report.js
-
       - name: Upload HTML report as artifact
         uses: actions/upload-artifact@v7
         with:
           name: outage-analysis-report
           path: outage-analysis-report.html
-          retention-days: 30
-
-      - name: Upload executive briefing as artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: outage-analysis-executive-briefing
-          path: outage-analysis-executive.html
           retention-days: 30
 
       - name: Post summary as GitHub Issue
@@ -96,9 +86,10 @@ jobs:
 
             const resItems = items.filter(i => i.resiliencyApar || (i.labels||[]).includes('Resiliency Analysis'));
 
+            const now = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
             const lines = [
               \`## \${projectTitle}\`,
-              \`**Generated:** \$(date +'%Y-%m-%d %H:%M UTC')  |  **Total items:** \${totalItems}\`,
+              \`**Generated:** \${now}  |  **Total items:** \${totalItems}\`,
               '',
               '### Status Breakdown',
               '| Status | Count |',
