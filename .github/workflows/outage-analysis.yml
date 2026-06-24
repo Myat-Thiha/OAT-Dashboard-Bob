@@ -37,7 +37,7 @@ jobs:
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           PROJECT_ID: ${{ secrets.PROJECT_ID }}
-          GITHUB_API_URL: ${{ secrets.GHE_API_URL || 'https://api.github.com/graphql' }}
+          GHE_API_URL: ${{ secrets.GHE_API_URL }}
         run: node .bob/skills/outage-analysis/fetch-project.js > project-data.json
 
       - name: Generate HTML report

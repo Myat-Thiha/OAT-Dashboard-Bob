@@ -50,7 +50,7 @@ if (existsSync(envPath)) {
 
 const token   = process.env.PROJECT_TOKEN;
 const projectId = process.env.PROJECT_ID;
-const apiUrl  = process.env.GITHUB_API_URL || "https://api.github.com/graphql";
+const apiUrl  = process.env.GHE_API_URL || process.env.GITHUB_API_URL || "https://api.github.com/graphql";
 
 // Fail fast with a helpful message if the required variables are missing.
 if (!token || !projectId) {
