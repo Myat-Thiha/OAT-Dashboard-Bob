@@ -6,7 +6,8 @@
   "scripts": {
     "fetch": "node .bob/skills/outage-analysis/fetch-project.js > project-data.json",
     "report": "node generate-report.js",
-    "dashboard": "npm run fetch && npm run report"
+    "exec-report": "node generate-executive-report.js",
+    "dashboard": "npm run fetch && npm run report && npm run exec-report"
   },
   "dependencies": {
     "dotenv": "^16.4.5"
