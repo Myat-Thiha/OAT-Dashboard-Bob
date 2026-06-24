@@ -70,8 +70,12 @@ List all items where `resiliencyApar` is non-empty OR `labels` includes `"Resili
 Show a table: Title | Status | Assignees | OA Dates | Resiliency APAR | Link.
 If there are none, say so explicitly.
 
+### All Items by OA Date
+List **all** board items in a table: Title | Status | Assignees | OA Dates | Outage Category | Link.
+Sort by `oaDates` ascending (items with no date listed last). If `oaDates` is empty, show "—".
+
 ### Uncategorized Items
-List all items with no `outageCategory`. Show a table: Title | Status | Assignees | Link.
+List all items with no `outageCategory`. Show a table: Title | Status | Assignees | OA Dates | Link.
 For each, suggest a likely category based on keywords in the title (use your judgment — no script needed for this step).
 
 ### Key Observations
