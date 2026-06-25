@@ -1,6 +1,6 @@
 ---
 name: outage-analysis
-description: Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Fetches all board items and produces a structured summary.
+description: Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Fetches all board items, produces a structured summary, and stays available for follow-up questions and analysis.
 ---
 
 # Outage Analysis Dashboard Summary
@@ -42,53 +42,169 @@ This saves the fetched data to `project-data.json` in the project root directory
 
 If the script exits with an error, show the error message to the user and stop.
 
-After saving, read the file using `read_file` tool to load the JSON data. The file contains:
+After saving, read the file using `read_file` tool to load the JSON data into context. The file contains:
 - `projectTitle` — the name of the GitHub Project board
 - `totalItems` — total number of items fetched
 - `items` — array of normalized board items, each with:
   `title`, `status`, `assignees`, `oaDates`, `outageCategory`, `resiliencyApar`,
   `oaOutcome`, `notes`, `labels`, `issueUrl`, `issueBody`
 
-## Step 3 — Produce the summary
+**Keep this data in mind for the rest of the conversation.** Once loaded, you do not need to re-fetch unless the user explicitly asks for fresh data.
 
-Parse the JSON output and produce a report with the following sections in markdown:
+## Step 3 — Generate the HTML report
 
-### Header
-- Project name and date of this summary
-- Total items on the board
+Run the report generator script using `execute_command`:
 
-### Status Breakdown
-Count items by `status` field. Show a table: Status | Count, sorted by count descending.
-Highlight any items with no status set ("Unset").
+```
+node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
+  --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
+  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html
+```
 
-### Activity by Year & Month
-Group items by the year and month of their `oaDates` field (format: `YYYY-MM-DD`). Ignore items where `oaDates` is null or unparseable.
+The script produces a fully self-contained HTML file at the path above. It includes all sections:
+- KPI summary, Status Breakdown, Activity by Year & Month, Top Outage Categories,
+  Resiliency Analysis Items, All Items by OA Date, Uncategorized Items with Suggested Categories,
+  and Key Observations.
 
-For each year (sorted ascending), show a sub-heading with the year and total item count for that year, followed by a table:
+If the script exits with an error, show the message to the user and stop.
 
-| Month | Count |
-|-------|-------|
-| Jan   | 3     |
-| ...   | ...   |
+After the script succeeds, tell the user the report has been written to `db2z-outage-analysis-team-dashboard-summary.html` and they can open it directly. Do **not** read the HTML file back into context or pass it to `create_html_artifact` — the file is large and reading it would hit the length limit that caused the original slowness. The report is complete on disk.
 
-Sort months ascending within each year. After the tables, note how many items have no OA date.
+---
 
-### Top Outage Categories
-Count items by `outageCategory`. Show the top 5 as a table: Category | Count.
-Also report total uncategorized items (null or empty `outageCategory`).
+## Workflow report variant
 
-### Resiliency Analysis Items
-List all items where `resiliencyApar` is non-empty OR `labels` includes `"Resiliency Analysis"`.
-Show a table: Title | Status | Assignees | OA Dates | Resiliency APAR | Link.
-If there are none, say so explicitly.
+When the report is generated via the **workflow** (not directly by Bob), add the `--workflow` flag:
 
-### All Items by OA Date
-List **all** board items in a table: Title | Status | Assignees | OA Dates | Outage Category | Link.
-Sort by `oaDates` ascending (items with no date listed last). If `oaDates` is empty, show "—".
+```
+node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
+  --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
+  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html \
+  --workflow
+```
 
-### Uncategorized Items
-List all items with no `outageCategory`. Show a table: Title | Status | Assignees | OA Dates | Link.
-For each, suggest a likely category based on keywords in the title (use your judgment — no script needed for this step).
+This omits the "Uncategorized Items" and "Key Observations" sections.
 
-### Key Observations
-Write 3–5 bullet points of narrative observations — patterns, anomalies, or anything the team should pay attention to. Go beyond the counts; note things like assignee concentration, stale dates, or clusters of similar issues.
+---
+
+## Follow-up Q&A mode
+
+After delivering the report, **stay in analyst mode**. The user may ask follow-up questions at any time. Answer them using the `project-data.json` already loaded in context — do **not** re-run the fetch script unless the user says something like "refresh", "re-fetch", or "get latest data".
+
+### When to re-fetch vs reuse
+
+| User says… | Action |
+|---|---|
+| "refresh", "re-fetch", "get latest", "update the data" | Re-run Steps 1–3 fully |
+| Any analysis or question | Answer from the data already in context |
+
+### Data already in context
+
+After Step 2, you have the full `items` array in context. Each item has:
+`title`, `status`, `assignees`, `oaDates`, `outageCategory`, `resiliencyApar`, `oaOutcome`, `notes`, `labels`, `issueUrl`, `issueBody`
+
+If the data was loaded in a previous turn and is no longer in context, re-read `project-data.json` using `read_file` before answering — do not guess or hallucinate.
+
+---
+
+## Follow-up question patterns
+
+### Category recommendations for uncategorized items
+
+When the user asks for category suggestions (e.g. "what category should this be?", "suggest categories for uncategorized outages"):
+
+1. Read `project-data.json` if not already in context
+2. Filter items where `outageCategory` is null or empty
+3. For each item, infer a category from keywords in `title`, `notes`, and `issueBody`
+4. Present a table: **Title | Suggested Category | Reasoning | Link**
+5. If the user wants to apply the suggestions, remind them to update the GitHub Project board directly — Bob cannot write back to GitHub Projects
+
+**Category taxonomy to use** (match the existing values in the board; suggest new ones only if nothing fits):
+- Hang / Deadlock
+- Crash / Abend
+- Performance / Slow
+- Connectivity / Network
+- Replication
+- Backup / Recovery
+- Security / Auth
+- Storage / Disk
+- Configuration
+- Upgrade / Migration
+- Operational / Other
+
+---
+
+### Assignee analysis
+
+When the user asks about assignees, workload, or who owns what:
+
+1. Tally items per assignee (use `assignees` field; fall back to `oaAssignees`)
+2. Highlight anyone carrying a disproportionate share
+3. Identify items with **no assignee** — these are a workload risk
+4. Present: **Assignee | Open items | Done items | Has Resiliency APAR**
+
+---
+
+### Stale / overdue items
+
+When the user asks about stale, old, or stuck items:
+
+1. Filter items where `status` is NOT "Done"
+2. Sort by `oaDates` ascending (oldest first); items without a date come last
+3. Flag items older than 6 months as stale
+4. Present: **Title | Status | OA Date | Assignees | Days open (approx.) | Link**
+
+---
+
+### Resiliency APAR tracking
+
+When the user asks about APARs, resiliency items, or open defects:
+
+1. Filter items where `resiliencyApar` is non-empty OR `labels` includes `"Resiliency Analysis"`
+2. Group by APAR number if multiple items share the same APAR
+3. Present: **APAR | Title(s) | Status | Assignees | OA Date | Link**
+4. Note any APARs that appear on multiple items — these may indicate recurring issues
+
+---
+
+### Trend analysis
+
+When the user asks about trends, patterns over time, or year/month breakdowns:
+
+1. Group items by `oaDates` (year + month)
+2. Count items per period and note spikes
+3. Cross-reference with `outageCategory` to see if a category drove a spike
+4. Describe the pattern in prose + a compact table: **Period | Count | Top category that month**
+
+---
+
+### Custom filters / ad-hoc queries
+
+When the user asks something like "show me all items assigned to X", "find items with no OA date", "list Done items in category Y":
+
+1. Apply the filter directly against the `items` array in context
+2. Return the matching items as a table appropriate to the question
+3. If the result is large (>20 rows), summarise first and offer to show the full list
+
+---
+
+### Regenerating the report
+
+If the user asks to regenerate or update the report after follow-up changes (e.g. "regenerate with the new categories"):
+
+Re-run Step 3 only (the generate-report script). No need to re-fetch from GitHub unless the user asks for fresh data.
+
+```
+node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
+  --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
+  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html
+```
+
+Then tell the user the report has been updated at `db2z-outage-analysis-team-dashboard-summary.html`. Do not read the HTML back into context.
+
+---
+
+## Supporting files in this skill directory:
+- fetch-project.js
+
+Use the read_file tool with paths relative to: .bob/skills/outage-analysis/
