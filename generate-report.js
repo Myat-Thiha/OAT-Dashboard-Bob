@@ -46,17 +46,6 @@ const generatedAt = `${MONTH_NAMES[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
 const esc = (s) =>
   s == null ? "" : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function issueNumber(url) {
-  if (!url) return null;
-  const m = url.match(/\/(\d+)$/);
-  return m ? m[1] : null;
-}
-
-function linkCell(url) {
-  const n = issueNumber(url);
-  return n ? `<a href="${esc(url)}" target="_blank" rel="noopener">#${n}</a>` : "—";
-}
-
 function titleLink(item) {
   const text = esc(item.title);
   if (!item.issueUrl) return text;
@@ -299,19 +288,17 @@ function renderAllItemsByDate() {
   const withRows = withDate.map((i) => `
       <tr>
         <td>${esc(i.oaDates)}</td>
-        <td class="truncate" title="${esc(i.title)}">${esc(i.title)}</td>
+        <td class="truncate" title="${esc(i.title)}">${titleLink(i)}</td>
         <td>${statusBadge(i.status || "Unset")}</td>
         <td>${esc(i.assignees || i.oaAssignees || "—")}</td>
         <td>${esc(i.outageCategory || "—")}</td>
-        <td>${linkCell(i.issueUrl)}</td>
       </tr>`).join("");
 
   const withoutRows = withoutDate.map((i) => `
       <tr>
-        <td class="truncate" title="${esc(i.title)}"><a href="${esc(i.issueUrl || "")}" target="_blank" rel="noopener">${esc(i.title)}</a></td>
+        <td class="truncate" title="${esc(i.title)}">${titleLink(i)}</td>
         <td>${statusBadge(i.status || "Unset")}</td>
         <td>${esc(i.assignees || i.oaAssignees || "—")}</td>
-        <td>${linkCell(i.issueUrl)}</td>
       </tr>`).join("");
 
   return `
@@ -319,12 +306,12 @@ function renderAllItemsByDate() {
   <p class="section-note">${withDate.length} items with OA dates, sorted ascending. ${withoutDate.length} items with no OA date are listed last.</p>
   <h3>Items with OA Dates (${withDate.length})</h3>
   <table>
-    <thead><tr><th>OA Date</th><th>Title</th><th>Status</th><th>Assignees</th><th>Category</th><th>Link</th></tr></thead>
+    <thead><tr><th>OA Date</th><th>Title</th><th>Status</th><th>Assignees</th><th>Category</th></tr></thead>
     <tbody>${withRows}</tbody>
   </table>
   <h3>Items without OA Dates (${withoutDate.length})</h3>
   <table>
-    <thead><tr><th>Title</th><th>Status</th><th>Assignees</th><th>Link</th></tr></thead>
+    <thead><tr><th>Title</th><th>Status</th><th>Assignees</th></tr></thead>
     <tbody>${withoutRows}</tbody>
   </table>
   <div class="note">${withoutDate.length} item${withoutDate.length !== 1 ? "s have" : " has"} no OA date. These may need a date to be recorded on the project board.</div>`;
@@ -343,14 +330,13 @@ function renderUncategorized() {
         <td>${statusBadge(i.status || "Unset")}</td>
         <td>${esc(i.oaDates || "—")}</td>
         <td>${esc(suggestCategory(i.title))}</td>
-        <td>${linkCell(i.issueUrl)}</td>
       </tr>`).join("");
 
   return `
   <h2>Uncategorized Items — Samples with Suggested Categories</h2>
   <p class="section-note">Showing up to 20 uncategorized items (prioritised by active status). Suggested categories are based on keywords in the title.</p>
   <table>
-    <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Suggested Category</th><th>Link</th></tr></thead>
+    <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Suggested Category</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
 }
