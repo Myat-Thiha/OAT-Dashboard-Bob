@@ -89,9 +89,9 @@ const categoryEntries = Object.entries(byCategory)
   .sort((a, b) => b[1] - a[1]);
 
 // Resiliency items
-const resiliencyItems = items.filter(
-  (i) => i.resiliencyApar || (i.labels || []).includes("Resiliency Analysis")
-);
+const resiliencyItems = items
+  .filter((i) => i.resiliencyApar || (i.labels || []).includes("Resiliency Analysis"))
+  .sort((a, b) => new Date(b.oaDates || 0) - new Date(a.oaDates || 0));
 
 // KPI counts
 const doneCount      = byStatus["Done"] || 0;
