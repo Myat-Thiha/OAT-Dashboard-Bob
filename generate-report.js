@@ -116,7 +116,6 @@ for (const item of items) {
   byYearCategory[y][cat] = (byYearCategory[y][cat] || 0) + 1;
 }
 const years = Object.keys(byYearMonth)
-  .filter((y) => y !== "2020" && y !== "2022")
   .sort();
 
 // Top-3 non-uncategorised categories per year as an inline mini-table
@@ -242,7 +241,7 @@ function renderYearMonth() {
 
   if (!years.length) {
     return `
-  <h2>Activity by Year</h2>
+  <h2>Analysis by Year</h2>
   <p class="section-note">No OA dates recorded.</p>`;
   }
 
@@ -274,7 +273,7 @@ function renderYearMonth() {
   }).join("");
 
   return `
-  <h2>Activity by Year</h2>
+  <h2>Analysis by Year</h2>
   <p class="section-note">Based on OA Date field. ${noDateCount} of ${totalItems} items (${noDatePct}%) have no OA date and are excluded from this section.</p>
   ${blocks}
   <div class="note">${noDateCount} item${noDateCount !== 1 ? "s" : ""} have no OA date recorded and are excluded above. See the "All Items by OA Date" section for the full list.</div>`;
@@ -307,7 +306,7 @@ function renderTopCategories() {
 function renderResiliency() {
   if (!resiliencyItems.length) {
     return `
-  <h2>Resiliency Analysis Items</h2>
+  <h2>Resiliency APAR Filed from OAT</h2>
   <p class="section-note">No items with Resiliency APAR set.</p>`;
   }
 
@@ -322,7 +321,7 @@ function renderResiliency() {
       </tr>`).join("");
 
   return `
-  <h2>Resiliency Analysis Items</h2>
+  <h2>Resiliency APAR Filed from OAT</h2>
   <p class="section-note">Items where Resiliency APAR is set. ${resiliencyItems.length} total.</p>
   <table>
     <thead><tr><th>Title</th><th>Status</th><th>OA Assignees</th><th>OA Date</th><th>APAR(s)</th><th>Category</th></tr></thead>
