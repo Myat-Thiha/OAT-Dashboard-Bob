@@ -115,7 +115,9 @@ for (const item of items) {
   const cat = item.outageCategory || "—";
   byYearCategory[y][cat] = (byYearCategory[y][cat] || 0) + 1;
 }
-const years = Object.keys(byYearMonth).sort();
+const years = Object.keys(byYearMonth)
+  .filter((y) => y !== "2020" && y !== "2022")
+  .sort();
 
 // Top-3 non-uncategorised categories per year as an inline mini-table
 function renderYearCats(y) {
