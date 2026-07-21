@@ -529,8 +529,8 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
 <div class="container">
-  <h1>${esc(projectTitle)} — Dashboard Summary</h1>
-  <div class="meta">Generated: ${generatedAt}  |  Source: GitHub Projects (GraphQL)  |  Board: <strong>${esc(projectTitle)}</strong></div>
+al  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${esc(projectTitle)} — Dashboard Summary</a></h1>
+  <div class="meta">Generated: ${generatedAt}  |  Source: GitHub Projects (GraphQL)  |  Board: <a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener"><strong>${esc(projectTitle)}</strong></a></div>
 
   ${renderKPIs()}
   ${renderStatusBreakdown()}

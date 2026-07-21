@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Db2z Outage Analysis Team — Manager Summary</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2328; background: #ffffff; padding: 32px 16px 48px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+  a { color: #3b82d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .audience-tag { display: inline-block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.03em; }
+  .kpi-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 18px; flex: 1; min-width: 110px; text-align: left; }
+  .kpi .num { font-size: 26px; font-weight: 700; color: #3b82d4; }
+  .kpi .lbl { font-size: 12px; color: #57606a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; white-space: nowrap; }
+  td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: middle; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .b-done     { background: #d1fae5; color: #065f46; }
+  .b-assigned { background: #dbeafe; color: #1e40af; }
+  .b-followup { background: #fef3c7; color: #92400e; }
+  .b-backlog  { background: #f3f4f6; color: #374151; }
+  .b-unset    { background: #fee2e2; color: #991b1b; }
+  .bar-wrap { background: #e5e7eb; border-radius: 3px; height: 8px; width: 100%; }
+  .bar      { background: #3b82d4; height: 8px; border-radius: 3px; min-width: 2px; }
+  .bar-warn { background: #f59e0b; }
+  .warn { background: #fff7ed; border-left: 3px solid #f59e0b; padding: 10px 14px; font-size: 13px; color: #92400e; margin: 10px 0; border-radius: 0 4px 4px 0; }
+  .obs-list { list-style: none; padding: 0; }
+  .obs-list li { padding: 8px 0 8px 20px; border-bottom: 1px solid #f3f4f6; position: relative; font-size: 13px; }
+  .obs-list li::before { content: "•"; position: absolute; left: 6px; color: #3b82d4; font-weight: 700; }
+  .obs-list li:last-child { border-bottom: none; }
+  .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">Db2z Outage Analysis Team — Manager Summary</a> <span class="audience-tag">Manager View</span></h1>
+  <div class="meta">Generated: Jul 2026  |  Source: GitHub Projects (GraphQL)  |  Board: <a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener"><strong>Db2z Outage Analysis Team</strong></a></div>
+
+  
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">244</div><div class="lbl">Total Items</div></div>
+    <div class="kpi"><div class="num">162</div><div class="lbl">Done</div></div>
+    <div class="kpi"><div class="num">19</div><div class="lbl">Followup Required</div></div>
+    <div class="kpi"><div class="num">33</div><div class="lbl">Assigned</div></div>
+    <div class="kpi"><div class="num">20</div><div class="lbl">Resiliency APARs</div></div>
+  </div>
+  
+  <h2>Status Breakdown</h2>
+  <table>
+    <thead><tr><th>Status</th><th>Count</th><th style="min-width:120px;">Distribution</th><th>Share</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge b-done">Done</span></td>
+        <td>162</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:66%"></div></div>
+        </td>
+        <td style="text-align:right;">66%</td>
+      </tr>
+      <tr>
+        <td><span class="badge b-assigned">Assigned</span></td>
+        <td>33</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:14%"></div></div>
+        </td>
+        <td style="text-align:right;">14%</td>
+      </tr>
+      <tr>
+        <td><span class="badge b-unset">Unset</span></td>
+        <td>30</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:12%"></div></div>
+        </td>
+        <td style="text-align:right;">12%</td>
+      </tr>
+      <tr>
+        <td><span class="badge b-followup">Followup Required</span></td>
+        <td>19</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:8%"></div></div>
+        </td>
+        <td style="text-align:right;">8%</td>
+      </tr></tbody>
+  </table>
+  <div class="warn">⚠ 30 items with no status set — needs triage.</div>
+  
+  <h2>Top Outage Categories</h2>
+  <table>
+    <thead><tr><th>Category</th><th>Count</th><th style="min-width:120px;">Distribution</th><th>Share</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>System issue within Db2</td>
+        <td>28</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
+        </td>
+        <td style="text-align:right;">11%</td>
+      </tr>
+      <tr>
+        <td>Code defect</td>
+        <td>28</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:100%"></div></div>
+        </td>
+        <td style="text-align:right;">11%</td>
+      </tr>
+      <tr>
+        <td>Memory / storage overlay (Db2)</td>
+        <td>21</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:75%"></div></div>
+        </td>
+        <td style="text-align:right;">9%</td>
+      </tr>
+      <tr>
+        <td>Enhancement needed</td>
+        <td>17</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:61%"></div></div>
+        </td>
+        <td style="text-align:right;">7%</td>
+      </tr>
+      <tr>
+        <td>Performance / hang related</td>
+        <td>12</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:43%"></div></div>
+        </td>
+        <td style="text-align:right;">5%</td>
+      </tr>
+      <tr>
+        <td>Lack of data - serviceability enhancement needed</td>
+        <td>10</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:36%"></div></div>
+        </td>
+        <td style="text-align:right;">4%</td>
+      </tr>
+      <tr>
+        <td>User oversight</td>
+        <td>10</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:36%"></div></div>
+        </td>
+        <td style="text-align:right;">4%</td>
+      </tr>
+      <tr>
+        <td>Application</td>
+        <td>9</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:32%"></div></div>
+        </td>
+        <td style="text-align:right;">4%</td>
+      </tr>
+      <tr>
+        <td>System memory issue (z/OS)</td>
+        <td>7</td>
+        <td>
+          <div class="bar-wrap"><div class="bar" style="width:25%"></div></div>
+        </td>
+        <td style="text-align:right;">3%</td>
+      </tr><tr><td><em>(Uncategorized)</em></td><td>102</td><td><div class="bar-wrap"><div class="bar bar-warn" style="width:364%"></div></div></td><td style="text-align:right;">42%</td></tr></tbody>
+  </table>
+  <div class="warn">⚠ 102 items (42%) have no outage category.</div>
+  
+  <h2>Resiliency APARs</h2>
+  <p class="section-note">20 items — 16 distinct APARs.</p>
+  <table>
+    <thead><tr><th>APAR</th><th>Items</th><th>Statuses</th><th>Categories</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>PH58615</strong></td>
+        <td>3</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Enhancement needed</td>
+      </tr>
+      <tr>
+        <td><strong>PH70836, PH70286, PH70624</strong></td>
+        <td>2</td>
+        <td><span class="badge b-assigned">Assigned</span> <span class="badge b-done">Done</span></td>
+        <td>Application</td>
+      </tr>
+      <tr>
+        <td><strong>PH39985</strong></td>
+        <td>2</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Application</td>
+      </tr>
+      <tr>
+        <td><strong>PH56366 </strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Memory / storage overlay (Db2)</td>
+      </tr>
+      <tr>
+        <td><strong>PH66261</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>System issue within Db2</td>
+      </tr>
+      <tr>
+        <td><strong>PH64964</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>System issue within Db2</td>
+      </tr>
+      <tr>
+        <td><strong>PH66901</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>System issue within Db2</td>
+      </tr>
+      <tr>
+        <td><strong>PH63971</strong></td>
+        <td>1</td>
+        <td><span class="badge b-followup">Followup Required</span></td>
+        <td>Lack of data - serviceability enhancement needed</td>
+      </tr>
+      <tr>
+        <td><strong>PH60419</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Memory / storage overlay (Db2)</td>
+      </tr>
+      <tr>
+        <td><strong>PH59186</strong></td>
+        <td>1</td>
+        <td><span class="badge b-followup">Followup Required</span></td>
+        <td>Enhancement needed</td>
+      </tr>
+      <tr>
+        <td><strong>PH58686</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>User oversight</td>
+      </tr>
+      <tr>
+        <td><strong>PH50627</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Code defect</td>
+      </tr>
+      <tr>
+        <td><strong>PH55385</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Enhancement needed</td>
+      </tr>
+      <tr>
+        <td><strong>MVP E32431</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Enhancement needed</td>
+      </tr>
+      <tr>
+        <td><strong>PH52147</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Memory / storage overlay (Db2)</td>
+      </tr>
+      <tr>
+        <td><strong>PH31908</strong></td>
+        <td>1</td>
+        <td><span class="badge b-done">Done</span></td>
+        <td>Code defect</td>
+      </tr></tbody>
+  </table>
+  
+  <h2>Key Observations</h2>
+  <ul class="obs-list">
+    <li><strong>107 items (44%)</strong> are missing an OA date — recording these improves trend analysis.</li>
+    <li><strong>30 items</strong> have no status set and need triage.</li>
+    <li><strong>102 items</strong> lack an outage category.</li>
+    <li>Leading outage category: <strong>System issue within Db2</strong> at <strong>20%</strong> of categorized items — may warrant targeted resiliency investment.</li>
+    <li><strong>20 items</strong> carry a Resiliency APAR — confirm these are open and tracked.</li>
+    <li><strong>162 of 244 items (66%)</strong> are marked Done. 19 items still require followup.</li>
+  </ul>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

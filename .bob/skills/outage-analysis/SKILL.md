@@ -1,9 +1,9 @@
 ---
 name: outage-analysis
-description: Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Fetches all board items, produces a structured summary, and stays available for follow-up questions and analysis.
+description: Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Produces an executive leadership summary: big-number KPIs, completion rate gauge, category bar chart, APAR snapshot, and plain-language executive summary bullets — no item-level detail.
 ---
 
-# Outage Analysis Dashboard Summary
+# Outage Analysis Dashboard — Leadership Summary
 
 Follow these steps exactly each time this skill is activated.
 
@@ -53,43 +53,32 @@ After saving, read the file using `read_file` tool to load the JSON data into co
 
 ## Step 3 — Generate the HTML report
 
-Run the report generator script using `execute_command`:
+Run the leadership report generator script using `execute_command`:
 
 ```
-node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
+node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report-leadership.js \
   --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
-  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html
+  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-leadership-report.html
 ```
 
-The script produces a fully self-contained HTML file at the path above. It includes all sections:
-- KPI summary, Status Breakdown, Activity by Year & Month, Top Outage Categories,
-  Resiliency Analysis Items, All Items by OA Date, Uncategorized Items with Suggested Categories,
-  and Key Observations.
+The script produces a fully self-contained HTML file. It includes:
+- KPI tiles: Total items, Resolved, Followup Required, In Progress
+- Completion rate gauge (SVG donut)
+- Top category horizontal bar chart (SVG, no external assets)
+- Resiliency APAR snapshot: items count + distinct APAR count
+- Executive Summary: up to 5 plain-language insight bullets
+
+No item-level tables, drilldowns, or engineering detail — this is a leadership-level one-pager.
 
 If the script exits with an error, show the message to the user and stop.
 
-After the script succeeds, tell the user the report has been written to `db2z-outage-analysis-team-dashboard-summary.html` and they can open it directly. Do **not** read the HTML file back into context or pass it to `create_html_artifact` — the file is large and reading it would hit the length limit that caused the original slowness. The report is complete on disk.
-
----
-
-## Workflow report variant
-
-When the report is generated via the **workflow** (not directly by Bob), add the `--workflow` flag:
-
-```
-node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
-  --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
-  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html \
-  --workflow
-```
-
-This omits the "Uncategorized Items" and "Key Observations" sections.
+After the script succeeds, tell the user the report has been written to `db2z-outage-analysis-leadership-report.html` and they can open it directly. Do **not** read the HTML file back into context.
 
 ---
 
 ## Follow-up Q&A mode
 
-After delivering the report, **stay in analyst mode**. The user may ask follow-up questions at any time. Answer them using the `project-data.json` already loaded in context — do **not** re-run the fetch script unless the user says something like "refresh", "re-fetch", or "get latest data".
+After delivering the report, stay available for follow-up questions. Answer using the `project-data.json` already in context — do **not** re-run the fetch script unless the user says "refresh", "re-fetch", or "get latest data".
 
 ### When to re-fetch vs reuse
 
@@ -98,113 +87,42 @@ After delivering the report, **stay in analyst mode**. The user may ask follow-u
 | "refresh", "re-fetch", "get latest", "update the data" | Re-run Steps 1–3 fully |
 | Any analysis or question | Answer from the data already in context |
 
-### Data already in context
-
-After Step 2, you have the full `items` array in context. Each item has:
-`title`, `status`, `assignees`, `oaDates`, `outageCategory`, `resiliencyApar`, `oaOutcome`, `notes`, `labels`, `issueUrl`, `issueBody`
-
-If the data was loaded in a previous turn and is no longer in context, re-read `project-data.json` using `read_file` before answering — do not guess or hallucinate.
-
 ---
 
 ## Follow-up question patterns
 
-### Category recommendations for uncategorized items
+### High-level metric questions
 
-When the user asks for category suggestions (e.g. "what category should this be?", "suggest categories for uncategorized outages"):
+When the user asks "what's our completion rate?", "how many are still open?", "what's the top failure type?":
+- Answer directly from aggregated counts (byStatus, byCategory) already in context
+- Keep answers to 1–3 sentences — this is a leadership audience
 
-1. Read `project-data.json` if not already in context
-2. Filter items where `outageCategory` is null or empty
-3. For each item, infer a category from keywords in `title`, `notes`, and `issueBody`
-4. Present a table: **Title | Suggested Category | Reasoning | Link**
-5. If the user wants to apply the suggestions, remind them to update the GitHub Project board directly — Bob cannot write back to GitHub Projects
+### Resiliency APAR questions
 
-**Category taxonomy to use** (match the existing values in the board; suggest new ones only if nothing fits):
-- Hang / Deadlock
-- Crash / Abend
-- Performance / Slow
-- Connectivity / Network
-- Replication
-- Backup / Recovery
-- Security / Auth
-- Storage / Disk
-- Configuration
-- Upgrade / Migration
-- Operational / Other
+When the user asks about APARs or resiliency filings:
+1. Count items where `resiliencyApar` is non-empty or `labels` includes "Resiliency Analysis"
+2. Summarise distinct APAR numbers and their associated statuses
+3. Keep to a brief paragraph — no item tables
 
----
+### Trend questions
 
-### Assignee analysis
-
-When the user asks about assignees, workload, or who owns what:
-
-1. Tally items per assignee (use `assignees` field; fall back to `oaAssignees`)
-2. Highlight anyone carrying a disproportionate share
-3. Identify items with **no assignee** — these are a workload risk
-4. Present: **Assignee | Open items | Done items | Has Resiliency APAR**
-
----
-
-### Stale / overdue items
-
-When the user asks about stale, old, or stuck items:
-
-1. Filter items where `status` is NOT "Done"
-2. Sort by `oaDates` ascending (oldest first); items without a date come last
-3. Flag items older than 6 months as stale
-4. Present: **Title | Status | OA Date | Assignees | Days open (approx.) | Link**
-
----
-
-### Resiliency APAR tracking
-
-When the user asks about APARs, resiliency items, or open defects:
-
-1. Filter items where `resiliencyApar` is non-empty OR `labels` includes `"Resiliency Analysis"`
-2. Group by APAR number if multiple items share the same APAR
-3. Present: **APAR | Title(s) | Status | Assignees | OA Date | Link**
-4. Note any APARs that appear on multiple items — these may indicate recurring issues
-
----
-
-### Trend analysis
-
-When the user asks about trends, patterns over time, or year/month breakdowns:
-
-1. Group items by `oaDates` (year + month)
-2. Count items per period and note spikes
-3. Cross-reference with `outageCategory` to see if a category drove a spike
-4. Describe the pattern in prose + a compact table: **Period | Count | Top category that month**
-
----
-
-### Custom filters / ad-hoc queries
-
-When the user asks something like "show me all items assigned to X", "find items with no OA date", "list Done items in category Y":
-
-1. Apply the filter directly against the `items` array in context
-2. Return the matching items as a table appropriate to the question
-3. If the result is large (>20 rows), summarise first and offer to show the full list
-
----
+When the user asks "are things getting better?", "how does this year compare to last?":
+1. Group items by `oaDates` year
+2. Report year-over-year item counts and resolved percentages
+3. Note any notable spikes or improvements in plain language
 
 ### Regenerating the report
 
-If the user asks to regenerate or update the report after follow-up changes (e.g. "regenerate with the new categories"):
-
-Re-run Step 3 only (the generate-report script). No need to re-fetch from GitHub unless the user asks for fresh data.
+Re-run Step 3 only. No need to re-fetch unless the user asks for fresh data.
 
 ```
-node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report.js \
+node /Users/myatthiha/Documents/OAT_Bob_Analysis/generate-report-leadership.js \
   --input /Users/myatthiha/Documents/OAT_Bob_Analysis/project-data.json \
-  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-team-dashboard-summary.html
+  --output /Users/myatthiha/Documents/OAT_Bob_Analysis/db2z-outage-analysis-leadership-report.html
 ```
-
-Then tell the user the report has been updated at `db2z-outage-analysis-team-dashboard-summary.html`. Do not read the HTML back into context.
 
 ---
 
 ## Supporting files in this skill directory:
-- fetch-project.js
-
-Use the read_file tool with paths relative to: .bob/skills/outage-analysis/
+- fetch-project.js — fetches all project items from GitHub Projects GraphQL API
+- Report generator: `generate-report-leadership.js`

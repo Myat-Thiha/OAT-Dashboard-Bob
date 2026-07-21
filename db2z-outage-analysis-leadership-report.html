@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Db2z Outage Analysis Team — Leadership Summary</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2328; background: #ffffff; padding: 32px 16px 48px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+  a { color: #3b82d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .audience-tag { display: inline-block; background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.03em; }
+  .kpi-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 20px; flex: 1; min-width: 110px; }
+  .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
+  .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+  .kpi.kpi-alert .num { color: #b45309; }
+  .two-col { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; }
+  .two-col .gauge-wrap { flex-shrink: 0; }
+  .two-col .chart-wrap { flex: 1; min-width: 260px; }
+  .exec-list { list-style: none; padding: 0; }
+  .exec-list li { padding: 10px 0 10px 22px; border-bottom: 1px solid #f3f4f6; position: relative; font-size: 13px; }
+  .exec-list li::before { content: "→"; position: absolute; left: 4px; color: #3b82d4; font-weight: 700; }
+  .exec-list li:last-child { border-bottom: none; }
+  /* Resiliency APAR toggle */
+  .resil-toggle { display: inline-block; margin-top: 6px; }
+  .resil-toggle > details { border-left: 3px solid #d8b4fe; padding-left: 14px; }
+  .resil-toggle > details > summary { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; list-style: none; user-select: none; }
+  .resil-toggle > details > summary::-webkit-details-marker { display: none; }
+  .resil-toggle > details > summary::before { content: "▶"; font-size: 10px; color: #7c3aed; flex-shrink: 0; transition: transform 0.15s; }
+  .resil-toggle > details[open] > summary::before { transform: rotate(90deg); }
+  .resil-tile-btn { background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 6px; padding: 12px 20px; text-align: center; display: inline-block; }
+  .resil-tile-btn .num { font-size: 28px; font-weight: 700; color: #7c3aed; line-height: 1.1; }
+  .resil-tile-btn .lbl { font-size: 12px; color: #57606a; }
+  .resil-hint { font-size: 11px; color: #7c3aed; margin-top: 3px; }
+  .resil-table-wrap { padding-top: 10px; padding-bottom: 6px; }
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; white-space: nowrap; }
+  td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: middle; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .b-done     { background: #d1fae5; color: #065f46; }
+  .b-assigned { background: #dbeafe; color: #1e40af; }
+  .b-followup { background: #fef3c7; color: #92400e; }
+  .b-unset    { background: #fee2e2; color: #991b1b; }
+  .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
+  /* Year bars */
+  .year-bar-wrap { margin: 12px 0 4px; }
+  .year-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; cursor: pointer; border-radius: 4px; padding: 3px 4px; transition: background 0.12s; }
+  .year-bar-row:hover { background: #eff6ff; }
+  .year-bar-label { width: 34px; font-weight: 600; color: #1f2328; flex-shrink: 0; }
+  .year-bar-track { flex: 1; background: #e5e7eb; border-radius: 3px; height: 14px; }
+  .year-bar-fill { background: #3b82d4; height: 14px; border-radius: 3px; min-width: 3px; }
+  .year-bar-count { width: 52px; font-size: 12px; color: #3b82d4; text-align: right; flex-shrink: 0; font-weight: 600; }
+  .year-hint { font-size: 11px; color: #57606a; margin-bottom: 10px; }
+  .year-summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+  .year-summary-table th { background: #f7f8fa; text-align: left; padding: 6px 10px; border: 1px solid #e5e7eb; font-weight: 600; font-size: 12px; }
+  .year-summary-table td { padding: 5px 10px; border: 1px solid #e5e7eb; }
+  .year-summary-table tr:nth-child(even) td { background: #fafbfc; }
+  .year-summary-table .yr-link { cursor: pointer; color: #3b82d4; font-weight: 700; }
+  .year-summary-table .yr-link:hover { text-decoration: underline; }
+  /* Year items modal */
+  .yr-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+  .yr-modal-overlay.open { display: flex; }
+  .yr-modal-box { background: #fff; border-radius: 8px; width: 100%; max-width: 860px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); display: flex; flex-direction: column; max-height: calc(100vh - 80px); }
+  .yr-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+  .yr-modal-title { font-size: 15px; font-weight: 700; color: #1f2328; }
+  .yr-modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #57606a; padding: 2px 8px; border-radius: 4px; line-height: 1; }
+  .yr-modal-close:hover { background: #f3f4f6; color: #1f2328; }
+  .yr-modal-body { overflow-y: auto; padding: 16px 18px; font-size: 13px; }
+  .yr-modal-body table { width: 100%; }
+  .yr-modal-body td { vertical-align: top; }
+  .yr-modal-count { font-size: 12px; color: #57606a; margin-bottom: 10px; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">Db2z Outage Analysis Team — Leadership Summary</a> <span class="audience-tag">Leadership View</span></h1>
+  <div class="meta">Generated: Jul 2026  |  Source: GitHub Projects (GraphQL)  |  Board: <a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener"><strong>Db2z Outage Analysis Team</strong></a></div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">244</div><div class="lbl">Total Outage Items</div></div>
+    <div class="kpi"><div class="num">162</div><div class="lbl">Resolved</div></div>
+    <div class="kpi kpi-alert"><div class="num">19</div><div class="lbl">Followup Required</div></div>
+    <div class="kpi"><div class="num">33</div><div class="lbl">In Progress</div></div>
+  </div>
+
+  <h2>Completion Rate &amp; Category Breakdown</h2>
+  <div class="two-col">
+    <div class="gauge-wrap">
+  <svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Completion rate 66%">
+    <circle cx="70" cy="70" r="54" fill="none" stroke="#e5e7eb" stroke-width="14"/>
+    <circle cx="70" cy="70" r="54" fill="none" stroke="#3b82d4" stroke-width="14"
+      stroke-dasharray="223.93 115.36"
+      stroke-linecap="round"
+      transform="rotate(-90 70 70)"/>
+    <text x="70" y="64" text-anchor="middle" font-size="22" font-weight="700" fill="#3b82d4" font-family="-apple-system,'Segoe UI',sans-serif">66%</text>
+    <text x="70" y="84" text-anchor="middle" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">Complete</text>
+  </svg></div>
+    <div class="chart-wrap">
+      <p class="section-note">Top outage categories by volume — 102 items unclassified.</p>
+      
+  <svg width="616" height="238" viewBox="0 0 616 238" role="img" aria-label="Category bar chart" style="max-width:100%;overflow:visible;">
+    
+  <g transform="translate(0,0)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">System issue within Db2</text>
+    <rect x="180" y="6" width="380" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="566" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">28 (11%)</text>
+  </g>
+  <g transform="translate(0,26)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Code defect</text>
+    <rect x="180" y="6" width="380" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="566" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">28 (11%)</text>
+  </g>
+  <g transform="translate(0,52)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Memory / storage overl…</text>
+    <rect x="180" y="6" width="285" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="471" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">21 (9%)</text>
+  </g>
+  <g transform="translate(0,78)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Enhancement needed</text>
+    <rect x="180" y="6" width="231" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="417" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">17 (7%)</text>
+  </g>
+  <g transform="translate(0,104)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Performance / hang rel…</text>
+    <rect x="180" y="6" width="163" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="349" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">12 (5%)</text>
+  </g>
+  <g transform="translate(0,130)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Lack of data - service…</text>
+    <rect x="180" y="6" width="136" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="322" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">10 (4%)</text>
+  </g>
+  <g transform="translate(0,156)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">User oversight</text>
+    <rect x="180" y="6" width="136" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="322" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">10 (4%)</text>
+  </g>
+  <g transform="translate(0,182)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">Application</text>
+    <rect x="180" y="6" width="122" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="308" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">9 (4%)</text>
+  </g>
+  <g transform="translate(0,208)">
+    <text x="172" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">System memory issue (z…</text>
+    <rect x="180" y="6" width="95" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="281" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">7 (3%)</text>
+  </g>
+  </svg>
+    </div>
+  </div>
+
+  <h2>Resiliency APARs</h2>
+  <p class="section-note">Items that resulted in a formal resiliency APAR filing.</p>
+  <div class="resil-toggle">
+    <details>
+      <summary>
+        <div class="resil-tile-btn">
+          <div class="num">20</div>
+          <div class="lbl">Items with APAR</div>
+          <div class="resil-hint">Click to view all ▾</div>
+        </div>
+      </summary>
+      <div class="resil-table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>APAR(s)</th><th>Category</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/34613" target="_blank" rel="noopener">TS018661470(SC) - TS018660414(PC) - DSNXELX+2FE6 abend 0C4-00000010</a></td><td><span class="badge b-done">Done</span></td><td>2026-05-14</td><td>PH56366</td><td>Memory / storage overlay (Db2)</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/39688" target="_blank" rel="noopener">TS021338118 00C90101 in DB2</a></td><td><span class="badge b-assigned">Assigned</span></td><td>2026-04-09</td><td>PH70836, PH70286, PH70624</td><td>Application</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/39727" target="_blank" rel="noopener">PC(TS021415835) PH70173 Rebuild index doesn't work properly</a></td><td><span class="badge b-done">Done</span></td><td>2026-04-09</td><td>PH70836, PH70286, PH70624</td><td>Application</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/34348" target="_blank" rel="noopener">PC(TS018512669) Abend 04E RC00c90101 DSNILKTO:1002 during restart at D/R site</a></td><td><span class="badge b-done">Done</span></td><td>2026-03-03</td><td>PH66261</td><td>System issue within Db2</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/33950" target="_blank" rel="noopener">TS018309116 — DB2 Performance Problems with Uncommitted UR</a></td><td><span class="badge b-done">Done</span></td><td>2026-02-03</td><td>PH64964</td><td>System issue within Db2</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/33402" target="_blank" rel="noopener">TS017921578 (PC) DB2 issues with broken indexes — NOW RECOVER failures</a></td><td><span class="badge b-done">Done</span></td><td>2025-12-03</td><td>PH66901</td><td>System issue within Db2</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/31696" target="_blank" rel="noopener">TS016887843 CICS thread in ROLLBACK state — had to cycle DB2 to clear</a></td><td><span class="badge b-followup">Followup Required</span></td><td>2025-07-01</td><td>PH63971</td><td>Lack of data - serviceability enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/29651" target="_blank" rel="noopener">TS015907110 — DA PLEX GMVS SVC DUMP ABND=04E-00C90101</a></td><td><span class="badge b-done">Done</span></td><td>2024-09-04</td><td>PH58615</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/27331" target="_blank" rel="noopener">[TS014467141] — ABEND04E RC00C90101 at DSNOCCLO:53BB</a></td><td><span class="badge b-done">Done</span></td><td>2024-08-06</td><td>PH58615</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/29165" target="_blank" rel="noopener">[TS015663723] — ABEND04E RC00C90101 at DSNOCCLO:53BB</a></td><td><span class="badge b-done">Done</span></td><td>2024-08-06</td><td>PH58615</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/25548" target="_blank" rel="noopener">TS013238255 DB2 for z/OS abend</a></td><td><span class="badge b-done">Done</span></td><td>2024-07-09</td><td>PH60419</td><td>Memory / storage overlay (Db2)</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/28232" target="_blank" rel="noopener">TS015130067 - DB2 ABNORMAL TERMINATION REASON=00F30801</a></td><td><span class="badge b-followup">Followup Required</span></td><td>2024-05-08</td><td>PH59186</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/27657" target="_blank" rel="noopener">[TS014689130] — multiple ABEND04E during restart of D/R recovery</a></td><td><span class="badge b-done">Done</span></td><td>2024-02-02</td><td>PH58686</td><td>User oversight</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/25247" target="_blank" rel="noopener">TS013028331 and TS013246962 - DTC - RSU2212 maintenance, DB2 crash</a></td><td><span class="badge b-done">Done</span></td><td>2023-10-16</td><td>PH50627</td><td>Code defect</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/22694" target="_blank" rel="noopener">TS010984416 - DSNB5SCM got abend for 00C200C6 and set LPL on a LLSMAP page</a></td><td><span class="badge b-done">Done</span></td><td>2023-06-23</td><td>PH55385</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/22556" target="_blank" rel="noopener">[TS011163579] — DSNP031I/DSNP007I/DSNP011I flood for PBG part 3</a></td><td><span class="badge b-done">Done</span></td><td>2023-04-20</td><td>MVP E32431</td><td>Enhancement needed</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/23396" target="_blank" rel="noopener">TS011818857 - CA - DB2 DataShr member won't startup 00E2002F/00D96001</a></td><td><span class="badge b-done">Done</span></td><td>2023-02-07</td><td>PH52147</td><td>Memory / storage overlay (Db2)</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/13449" target="_blank" rel="noopener">TS005488332 DB2 CRASH AFTER STA TRACE - ABEND0C4 at DSNWVAPR+01D9E</a></td><td><span class="badge b-done">Done</span></td><td>2023-02-07</td><td>PH39985</td><td>Application</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/11727" target="_blank" rel="noopener">TS005488332 DB2 CRASH AFTER STA TRACE</a></td><td><span class="badge b-done">Done</span></td><td>2023-02-07</td><td>PH39985</td><td>Application</td></tr>
+            <tr><td><a href="https://github.ibm.com/Db2z/wall-of-work/issues/8191" target="_blank" rel="noopener">Banco Safra S.A TS004391938</a></td><td><span class="badge b-done">Done</span></td><td>2020-11-30</td><td>PH31908</td><td>Code defect</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <h2>Analysis by Year</h2>
+  <p class="section-note">Based on OA Date field. 107 of 244 items (44%) have no OA date and are excluded. Click any year to view its items.</p>
+  <div class="year-bar-wrap">
+    <div class="year-bar-row" onclick="openYearModal(2020)">
+      <span class="year-bar-label">2020</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:12.5%"></div></div>
+      <span class="year-bar-count">6 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2021)">
+      <span class="year-bar-label">2021</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:2.1%"></div></div>
+      <span class="year-bar-count">1 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2022)">
+      <span class="year-bar-label">2022</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:10.4%"></div></div>
+      <span class="year-bar-count">5 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2023)">
+      <span class="year-bar-label">2023</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:100%"></div></div>
+      <span class="year-bar-count">48 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2024)">
+      <span class="year-bar-label">2024</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:37.5%"></div></div>
+      <span class="year-bar-count">18 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2025)">
+      <span class="year-bar-label">2025</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:43.8%"></div></div>
+      <span class="year-bar-count">21 →</span>
+    </div>
+    <div class="year-bar-row" onclick="openYearModal(2026)">
+      <span class="year-bar-label">2026</span>
+      <div class="year-bar-track"><div class="year-bar-fill" style="width:79.2%"></div></div>
+      <span class="year-bar-count">38 →</span>
+    </div>
+  </div>
+  <table class="year-summary-table">
+    <thead><tr><th>Year</th><th>Items</th><th>Top Category</th><th>Uncategorized</th></tr></thead>
+    <tbody>
+      <tr><td class="yr-link" onclick="openYearModal(2020)">2020</td><td>6</td><td>Lack of data - serviceability enhancement needed (2)</td><td>1</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2021)">2021</td><td>1</td><td>—</td><td>1</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2022)">2022</td><td>5</td><td>System issue within Db2 (2)</td><td>0</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2023)">2023</td><td>48</td><td>Code defect (10)</td><td>5</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2024)">2024</td><td>18</td><td>Enhancement needed (7)</td><td>0</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2025)">2025</td><td>21</td><td>Code defect (6)</td><td>0</td></tr>
+      <tr><td class="yr-link" onclick="openYearModal(2026)">2026</td><td>38</td><td>System memory issue (z/OS) (5)</td><td>13</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Year items modal -->
+  <div id="yr-modal" class="yr-modal-overlay" onclick="if(event.target===this)closeYearModal()">
+    <div class="yr-modal-box">
+      <div class="yr-modal-header">
+        <span id="yr-modal-title" class="yr-modal-title"></span>
+        <button class="yr-modal-close" onclick="closeYearModal()">✕</button>
+      </div>
+      <div id="yr-modal-body" class="yr-modal-body"></div>
+    </div>
+  </div>
+
+  <h2>Executive Summary</h2>
+  <ul class="exec-list">
+    <li><strong>82 of 244 items (34%)</strong> remain open. 19 require immediate followup; 33 are actively assigned.</li>
+    <li>The top failure category is <strong>System issue within Db2</strong>, representing <strong>20%</strong> of classified outages — a primary candidate for targeted reliability investment.</li>
+    <li><strong>20 items</strong> carry a Resiliency APAR — these should be confirmed open and prioritised with the owning development teams.</li>
+    <li><strong>102 items (42%)</strong> are still unclassified — classification gaps reduce visibility into the leading failure drivers.</li>
+    <li><strong>107 items (44%)</strong> lack an OA date, limiting year-over-year trend reporting.</li>
+  </ul>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+
+<script>
+const BADGE = {
+  "Done":             '<span class="badge b-done">Done</span>',
+  "Assigned":         '<span class="badge b-assigned">Assigned</span>',
+  "Followup Required":'<span class="badge b-followup">Followup Required</span>',
+  "Unset":            '<span class="badge b-unset">Unset</span>',
+};
+function badge(s){ return BADGE[s] || BADGE["Unset"]; }
+function row(url, title, status, date, cat){
+  const t = url ? `<a href="${url}" target="_blank" rel="noopener">${title}</a>` : title;
+  return `<tr><td>${t}</td><td>${badge(status)}</td><td style="white-space:nowrap">${date}</td><td>${cat}</td></tr>`;
+}
+
+const YEARS = {
+  2020: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/6219","TS003823087 - JPMC - D2#1 subsystem terminated abnormally 0C4-11 DSNVGEPL.DSNVFEB+00466","Unset","2020-08-13","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/6968","TS004090037 Auxiliary storage issue on DBM1. Had to cancel Db2","Done","2020-09-15","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/6025","TS003895038 - LD10 Db2 termination RC00F30420 0C4-11 DSN3TM00+113C","Unset","2020-09-28","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/7295","TS004162044 - S0C4-10 DSNYMESS 10/10/19 UI65816 +1FE","Unset","2020-09-30","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/5831","Parent case TS003833016: DB2 V12 DSNV086E DB2 ABNORMAL TERMINATION REASON=00F30420 ABEND0C4 PIC11 DSN3ID80","Unset","2020-10-19","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/8191","Banco Safra S.A TS004391938","Done","2020-11-30","Code defect"),
+  ],
+  2021: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/9838","TS004850066 Unable to establish new connections to Db2","Unset","2021-02-08","—"),
+  ],
+  2022: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13142","TS005840950 - LOCK TABLE causes user job to hang","Done","2022-03-09","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13357","TS006104062 - RC00E508A1","Done","2022-07-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/21616","TS010542152 PROD Db2 Crashed with ABND=04E-00F70603,U=SYSOPR","Done","2022-09-12","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/20836","TS010034294 DSNV086E DB2 ABNORMAL TERMINATION REASON=00E50705","Done","2022-11-11","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22931","TS011398191 - DB2 D2TC ABENDED DURING A BACKOUT","Done","2022-12-06","User oversight"),
+  ],
+  2023: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/23396","TS011818857 - CA - DB2 DataShr member won't startup 00E2002F/00D96001","Done","2023-02-07","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/23605","TS011959079 - DEPOSITORY TRUST - CICS S0C4-4 at DSN3EOT0+99 and 00F30036","Done","2023-02-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/17371","TS007958574 - Receiving abends 04E Reason 00E70005 at Csect DSNXEFDA Offset X'3614'","Done","2023-02-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/17372","TS008227130 PH44073 - DB2 DOWN due to Restarted Load 04F 00E50079 in DSNURMPG","Done","2023-02-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/17774","TS008479276 (RBC CRITSIT) DDF team collaboration MAXDBAT and 028.DBAA stuck threads","Done","2023-02-07","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/18149","TS008656526 Db2 v12 ABEND=S04F after applying maintenance","Done","2023-02-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/18208","TS008697598 - DB2 crashed and restart by ARM policy","Done","2023-02-07","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/18214","TS008694713 (CRITICAL) ABEND04E Reason code 00E5004 after Db2 V12 Early Code","Done","2023-02-07","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/18246","TS008687541 - DB2 termination loop in DSNSEOM when unable to cleanup storage","Done","2023-02-07","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/18249","TS008435368 - Db2 crash due to 00F3040A - Outage Analysis review","Done","2023-02-07","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13137","TS005984906 Hung Thread in DB2 V12 - Shows in backout","Done","2023-02-07","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13311","TS006087907 PAGE LATCH of the data page was not released before Set_dbetDirtyIC","Done","2023-02-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13383","TS006104062 Akbank CASTOUT issue.","Done","2023-02-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13384","TS006104062 Akbank 0C4 in DSNILSMG.","Done","2023-02-07","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13394","PC TS006104062 for Frances Villafuerte dsnitcus 5002","Done","2023-02-07","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13399","PC006104062 for DBET Thu - DSNIDBGN 5006","Done","2023-02-07","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13428","TS006104062 DSNKDLE :5009 abend","Done","2023-02-07","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/13449","TS005488332 DB2 CRASH AFTER STA TRACE - ABEND0C4 at DSNWVAPR+01D9E","Done","2023-02-07","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/14590","TS006449931 - Real Storage lack after changing APPLCOMPAT parameter in DB2","Done","2023-02-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/7331","TS004178722 IBPLEX DB3P ABEND S0D6","Done","2023-02-07","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/8668","TS004477243 AmEx ABEND 00E50001 DSNLAGNT+033D6","Done","2023-02-07","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/11727","TS005488332 DB2 CRASH AFTER STA TRACE","Done","2023-02-07","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/11780","TS005412830 Bc.bc5p RC00E50BA1 DSNVMDIE+00000 and prod db2 crash","Done","2023-02-07","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/24309","TS012397094 -- Db2 ABEND 0C4-00000038 DSNXGRDS.DSNXECW due to invalid SLTENEXT","Done","2023-03-07","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/21767","TS010590884 Applications ABEND 04E-00C90101/00C90D01 after BCM tests","Done","2023-04-04","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/23439","TS011856412 - 00E3007B DSNTGSCC DSNTABA +00D9E","Done","2023-04-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22556","[TS011163579] DSNP031I DSNP007I DSNP011I RC00D70014 flood for PBG part 3","Done","2023-04-20","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22043","TS010840712 CPU is 100%, Users unable to login to AA68 LPAR","Done","2023-04-26","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22485","Db2 V12 Parent Case - TS011124645 - TDB1 DB2 ABEND04E-00C200AE and Crash 00D94001","Done","2023-06-01","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25491","TS012996377 DSNB212I and DSNB215I on DSDNB06.SYSSEQ","Done","2023-06-06","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/23755","TS012084034 DB2 abend 00F30801","Done","2023-06-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22694","TS010984416 - DSNB5SCM got abend for 00C200C6 and set LPL on LLSMAP page","Done","2023-06-23","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/24578","TS012619273 - SYSUTILX LPL Status","Done","2023-07-24","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/24778","TS012694722 PH54920 POTENTIALLY INCONSISTENT DATA DSNDB06.SYSTSCPY 00C90205","Done","2023-08-01","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25549","TS013209762 - ARCBEST - 00E3000A DSNTAEA+005A8 DB2P abnormal termination 00D94001","Done","2023-08-17","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27171","TS014342663 - JPMC - DB4U ABNORMAL TERMINATION 00E50054 00E510A1","Done","2023-10-03","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/24383","TS012463344 #WM - DSNIOST2 POTENTIALLY INCONSISTENT DATA RC00C90216","Done","2023-10-10","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/24509","[TS012485909] VSAM overwrote by zero pages after REORG - abends DSNSTKGG DSNISMRS DSNICUMW","Done","2023-10-16","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25247","TS013028331 and TS013246962 - DTC - RSU2212 maintenance, DB2 crash","Done","2023-10-16","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25697","TS013277763 DB2 became unresponsive","Done","2023-10-16","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25987","TS013571114 - Santander - Db2 abend OC4 DSNTLTIM+00654 / 00E80100","Done","2023-10-16","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/21426","TS009991690 - OTA for Db2 lock/latch issue","Done","2023-10-16","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22348","PC TS011039660 Production DB2 Member LD16 Terminated S04F DSNB1SWS RC00C200D8","Done","2023-10-16","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/26223","TS013729736 AMEX - DDD3 subsystem crash - module DSNXEDC4","Done","2023-10-24","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/21190","TS010202660 - 04E-00E20001 abend DSNXEXPL.DSNSVSFB+009DA Dynamic Statement Cache","Done","2023-11-06","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27574","Db2 V12 Parent Case TS014581473 - D324 task Abended with S04F","Done","2023-11-07","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27169","TS014285954 LPCPMSTR Abend","Done","2023-11-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25839","TS013348152 - University of California - 0C4-3A DSNRCPRC+00198","Done","2023-11-13","Memory / storage overlay (Db2)"),
+  ],
+  2024: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27282","TS014377184 ABND=04E-00C90101 due to PAGE LOGICALLY BROKEN","Done","2024-01-09","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/26923","[TS014151838] ABEND04E RC00C90101 at DSNIBHUN:5013","Done","2024-01-09","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27625","PC TS014688639 DSNILKTO:1002 and ABNORMAL TERMINATION REASON=00D96001 during DR testing","Done","2024-02-02","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27657","[TS014689130] multiple ABEND04E during restart of D/R recovery - DSNIBHRE:5006 DSNIBHUN:5020","Done","2024-02-02","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28024","TS014939857 - Kyndryl Italia - Db2 fell down with S0d6 rc027 then restarted 00E50079","Done","2024-02-02","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27180","TS014292665 Application ABEND 04E-00C90206 DSNIDM.DSNIIDIS:5002 after DSNJ111E and DSNI021I","Done","2024-04-18","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27416","PC TS014534951 - 120 threads hung in DSNVXLT0 waiting on latch for workfile dataset","Done","2024-04-18","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28232","TS015130067 - DB2 ABNORMAL TERMINATION REASON=00F30801","Followup Required","2024-05-08","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/29128","[TS015652817] Crashed dB2 subsystem - overlay","Done","2024-05-08","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27494","TS014561536 - Kyndryl Italia - DSNV086E -DBOA DB2 ABNORMAL TERMINATION REASON=00D94001","Done","2024-06-11","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28249","TS015149480 - ADP - CLEV - CLIF DB2 ABNORMAL TERMINATION REASON=00E50054","Done","2024-06-11","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25548","TS013238255 DB2 for z/OS abend","Done","2024-07-09","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27331","[TS014467141] ABEND04E RC00C90101 at DSNOCCLO:53BB","Done","2024-08-06","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28917","TS015260596 - 0C4-00000004 in DSNXERT+88AA","Done","2024-08-06","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/29165","[TS015663723] ABEND04E RC00C90101 at DSNOCCLO:53BB","Done","2024-08-06","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/29605","TS015922085 Production Db2 Crashes with Reason Code 00E20042","Followup Required","2024-09-04","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/29651","TS015907110 DA PLEX GMVS SVC DUMP H15BDIST ABND=04E-00C90101","Done","2024-09-04","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/30771","Db2 V12 Parent Case - TS016419759 - 04E-00C90101 DSNIDBLG:5005 and Db2 crash DSNV086E 00D95001","Done","2024-10-17","Enhancement needed"),
+  ],
+  2025: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28973","TS015575965 - KYNDRYL BNSF - System became unresponsive with high cpu","Followup Required","2025-03-04","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/29223","TS015704506 - Rebind of pkg w/ MONTH YEAR MAX causes access path change and incorrect output","Followup Required","2025-04-01","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/25569","TS013237940 - Citigroup - S0C4-11 DSNRPBCW+004DC D2TS abnormal termination 00D95011","Followup Required","2025-04-01","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27486","TS014572515 Db2 v13 crash with 00E50054 during running queries","Done","2025-05-06","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/28114","TS015005197 Request for analysis of LPL occurrence (DSNDB01.SYSUTILX)","Done","2025-05-06","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/22370","TS010969040 - Alter Table Add Column Causes Outage","Done","2025-05-06","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27827","TS014769337 - DLTA: P073MSTR 00F3040A after allied AS abend878","Followup Required","2025-06-17","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/17250","TS008215646 DB2O S0C1","Followup Required","2025-06-17","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/31285","TS016620554 Db2 00C90101 DSNIBHUN:5016 abend after DSNIREPR:507E abend","Done","2025-06-17","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/30426","TS016307301 Abend on DB2 DPA1 engine","Done","2025-07-01","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/31696","TS016887843 CICS thread in ROLLBACK state seemed to be stuck - had to cycle DB2","Followup Required","2025-07-01","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/27928","TS014913373 - DB2 crashed with rc 00D10269","Done","2025-10-07","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/30206","TS016190479 - 00C900A6 after CATMAINT V13R1M504 followed by 04E-00E70005 after activating FL504","Followup Required","2025-10-07","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/23557","TS011956482 - Production DB2 region crashed","Followup Required","2025-11-11","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/32447","TS017255274 DB3G - Data Sharing Subsystem (PROD) Crashed","Followup Required","2025-11-11","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33454","TS017974214 -- S1 -- DB2 crash in dev plex","Followup Required","2025-11-11","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/31908","TS016965267 DB2B - V13 - subsys crash 04F after several 0C4-00000038 in DSNSLD4","Followup Required","2025-12-03","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/31741","TS016901588 - 00D94001 - overlay by DSNXRWND","Followup Required","2025-12-03","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33029","Outage Db2 V12 - TS017690903 DR Test: Abend04E-00C90101 during LPL/GRECP recovery","Followup Required","2025-12-03","Lack of data - serviceability enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33402","TS017921578 (PC) DB2 issues with broken indexes - NOW RECOVER failures 00C90101","Done","2025-12-03","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/32935","DB2 V12 Parent Case - TS017691023 - DR Test: Abend04E-00C90102 during LPL/GRECP recovery TMNFS075 PART 9","Followup Required","2025-12-03","Lack of data - serviceability enhancement needed"),
+  ],
+  2026: [
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33516","TS018014641 DAGQ DB2 subsystem abended with ABEND=S04F TERMINATION REASON=00E50705","Followup Required","2026-02-03","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34006","TS018254118 LPL in production applications DSNI005I DSNISREC LPL OR GRECP RECOVERY CANNOT","Followup Required","2026-02-03","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33950","TS018309116 DB2 Performance Problems with Uncommitted UR","Done","2026-02-03","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34296","TS018477294 - 00E20004 DIST BTB storage shortage","Done","2026-02-03","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33985","PC(TS018327074) Uncommitted UR for 014.IFTSKSxx - DB2P","Done","2026-03-03","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34281","TS018470760 - DB2 abend 00E50702 after 00E20003","Done","2026-03-03","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34348","PC(TS018512669) Abend 04E RC00c90101 DSNILKTO:1002 during restart at D/R site using FLASHCOPY","Done","2026-03-03","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/39688","TS021338118 00C90101 in DB2","Assigned","2026-04-09","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/39727","PC(TS021415835) PH70173 Rebuild index doesn't work properly - linked with TS021338118","Done","2026-04-09","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33984","PC(TS018326717) Uncommitted UR for 014.IFTSKSxx - DJP0","Done","2026-04-14","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33980","PC(TS018326629) Uncommitted UR for 014.IFTSKSxx - DSNO,DB2O DSGroup","Done","2026-04-14","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33314","TS017016181 MQ Threads are suspended in DB2","Done","2026-04-14","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34681","Allow Db2 to complete restart after DSNILKTO:1002 abend while processing in-doubt UR","Done","2026-04-14","System issue within Db2"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34953","TS018823191 - D3P5 - start TS taking too long to finish","Done","2026-04-14","Performance / hang related"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34613","TS018661470(SC) - TS018660414(PC) - DSNXELX+2FE6 abend 0C4-00000010","Done","2026-05-14","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/35690","TS019248868 PH66584 RECEIP07 TS RW WEPR DB2PRD01","Followup Required","2026-05-14","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/35699","TS019249027 DDF thread(120278) loop in DSNWDLSR","Done","2026-05-14","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/36836","Db2 V13 Parent Case - TS019834581 - DIST address space receives abend 0C4 PIC10 DSNICUMW","Assigned","2026-05-14","Memory / storage overlay (Db2)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33735","Db2 V12 FL510 Parent Case - TS017967151 - Workfile MAXTEMPS Value Reached","Done","2026-06-23","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34371","TS017886100 - DB2 crashed with DB2 SUBSYSTEM TERMINATION REQUESTED REASON=00F30411","Done","2026-06-23","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/36670","TS019740487 DB2 subsystem abended and terminated RIDS/DSNGEDM#L AB/S00C4","Done","2026-06-23","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/39626","TS021276695 PH70031/UO06930 DSNT376I against SYSSEQ after V13 Upgrade from V12","Assigned","2026-06-23","Code defect"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/33734","Db2 V12 Parent Case - TS018159744 - Caixa Critsit - LPL could not be resolved","Done","2026-07-07","Application"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/34899","TS018695214 - Db2 ABEND=S04F U0000 REASON=00000000","Done","2026-07-07","System memory issue (z/OS)"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/36633","Parent Case TS019406145 PH67315 - DSNDB01.SYSUTILX errors","Done","2026-07-07","Enhancement needed"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/38813","TS020842860 CICS in Short of Storage causes a hang-up","Done","2026-07-07","User oversight"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/35791","TS019307917 D3P1 - DB2 ABNORMAL TERMINATION REASON=00E3007A","Assigned","2026-08-04","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/36683","Db2 IRLM Lock Trace Tripped long page p-lock wait during LOT TS extent processing","Assigned","2026-08-04","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/37711","TS020248078 DB2 ABNORMAL TERMINATION REASON=00D93001","Assigned","2026-08-04","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/37269","TS020046468 (DTCC): DB2 thread hung following CICS AD3L abend","Assigned","2026-08-04","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/38484","TS020709115 DB2 does not restart","Assigned","2026-09-08","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/38651","DB2 V12 Parent Case - TS020786433 - ABNORMAL TERMINATION REASON=00E50702","Assigned","2026-09-08","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/38385","Db2 V13 Parent Case - TS020554995 - Long CICS Transaction stuck in rollback","Assigned","2026-09-08","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/42063","Db2 V13 Parent Case - TS022551751 - Production Outage - FREE ALL PLAN (SYSPLAN is empty)","Assigned","2026-09-08","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/36625","Sev 1 - TS019710586: Abend DB1P - Production environment","Assigned","2026-10-06","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/37155","Db2 V13 Parent Case - TS019993882 - 0C4-00000038 DSNIASFP+0162C DSNV086E 00E50702","Assigned","2026-10-06","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/38165","TS020548287 INDEX tree plock hung cause restart all production DB2 members","Assigned","2026-10-06","—"),
+    row("https://github.ibm.com/Db2z/wall-of-work/issues/37704","Sev 1 - TS020298014: Issues after a Db2 upgrade to V13 on WebSphere","Assigned","2026-10-06","—"),
+  ],
+};
+
+function openYearModal(year) {
+  const rows = YEARS[year];
+  if (!rows) return;
+  document.getElementById("yr-modal-title").textContent = year + " — " + rows.length + " item" + (rows.length !== 1 ? "s" : "");
+  document.getElementById("yr-modal-body").innerHTML =
+    '<table><thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Category</th></tr></thead><tbody>' +
+    rows.join("") +
+    '</tbody></table>';
+  document.getElementById("yr-modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function closeYearModal() {
+  document.getElementById("yr-modal").classList.remove("open");
+  document.body.style.overflow = "";
+}
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeYearModal(); });
+</script>
+</body>
+</html>

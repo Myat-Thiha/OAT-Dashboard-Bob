@@ -1,0 +1,272 @@
+// generate-report-leadership.js — Leadership executive OAT report
+// Sections: KPI summary (big-number tiles), Category bar chart (SVG),
+//           Completion rate gauge, Resiliency snapshot, Executive Summary bullets.
+// Omits all item-level detail — no tables, no drilldowns.
+import { readFileSync, writeFileSync } from "fs";
+
+const args       = process.argv.slice(2);
+const inputPath  = args[args.indexOf("--input")  + 1] || "project-data.json";
+const outputPath = args[args.indexOf("--output") + 1] || "outage-analysis-report-leadership.html";
+
+let data;
+try {
+  data = JSON.parse(readFileSync(inputPath, "utf8"));
+} catch (e) {
+  console.error("Error reading input file:", e.message);
+  process.exit(1);
+}
+
+const { projectTitle, totalItems, items } = data;
+const now = new Date();
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const generatedAt = `${MONTH_NAMES[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
+
+// ---------------------------------------------------------------------------
+// HTML helpers
+// ---------------------------------------------------------------------------
+const esc = (s) =>
+  s == null ? "" : String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// ---------------------------------------------------------------------------
+// Aggregations
+// ---------------------------------------------------------------------------
+
+const byStatus = {};
+for (const item of items) {
+  const s = item.status || "Unset";
+  byStatus[s] = (byStatus[s] || 0) + 1;
+}
+
+const byCategory = {};
+for (const item of items) {
+  const c = item.outageCategory || "(Uncategorized)";
+  byCategory[c] = (byCategory[c] || 0) + 1;
+}
+const uncategorizedCount = byCategory["(Uncategorized)"] || 0;
+const categoryEntries = Object.entries(byCategory)
+  .filter(([c]) => c !== "(Uncategorized)")
+  .sort((a, b) => b[1] - a[1]);
+
+const resiliencyItems = items
+  .filter((i) => i.resiliencyApar || (i.labels || []).includes("Resiliency Analysis"));
+
+const doneCount     = byStatus["Done"] || 0;
+const followupCount = byStatus["Followup Required"] || 0;
+const assignedCount = byStatus["Assigned"] || 0;
+const donePct       = Math.round(doneCount / totalItems * 100);
+const openCount     = totalItems - doneCount;
+const withoutDate   = items.filter((i) => !i.oaDates || isNaN(new Date(i.oaDates)));
+
+// APARs by unique number
+const aparSet = new Set(
+  resiliencyItems
+    .map((i) => i.resiliencyApar)
+    .filter(Boolean)
+);
+const aparCount = aparSet.size;
+
+// ---------------------------------------------------------------------------
+// SVG horizontal bar chart for top categories (max 10)
+// ---------------------------------------------------------------------------
+function renderCategoryChart() {
+  const entries = categoryEntries.slice(0, 10);
+  if (!entries.length) return `<p class="section-note">No categorized items.</p>`;
+
+  const maxVal   = entries[0][1];
+  const barW     = 380;
+  const rowH     = 26;
+  const labelW   = 180;
+  const countW   = 36;
+  const chartH   = entries.length * rowH + 4;
+
+  const bars = entries.map(([cat, n], idx) => {
+    const y     = idx * rowH;
+    const bLen  = Math.max(2, Math.round(n / maxVal * barW));
+    const pct   = Math.round(n / totalItems * 100);
+    const barColor = "#3b82d4";
+    return `
+  <g transform="translate(0,${y})">
+    <text x="${labelW - 8}" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">${esc(cat.length > 24 ? cat.slice(0, 22) + "…" : cat)}</text>
+    <rect x="${labelW}" y="6" width="${bLen}" height="14" rx="2" fill="${barColor}" opacity="0.85"/>
+    <text x="${labelW + bLen + 6}" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">${n} (${pct}%)</text>
+  </g>`;
+  }).join("");
+
+  const svgW = labelW + barW + countW + 20;
+  return `
+  <svg width="${svgW}" height="${chartH}" viewBox="0 0 ${svgW} ${chartH}" role="img" aria-label="Category bar chart" style="max-width:100%;overflow:visible;">
+    ${bars}
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// SVG donut gauge for completion rate
+// ---------------------------------------------------------------------------
+function renderGauge() {
+  const r  = 54;
+  const cx = 70;
+  const cy = 70;
+  const circ = 2 * Math.PI * r;
+  const filled = circ * (donePct / 100);
+  const gap    = circ - filled;
+  const pctLabel = `${donePct}%`;
+  // start from top (-90deg = -π/2)
+  // stroke-dasharray: filled gap; rotate so arc starts at top
+  return `
+  <svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Completion rate ${donePct}%">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="14"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#3b82d4" stroke-width="14"
+      stroke-dasharray="${filled.toFixed(2)} ${gap.toFixed(2)}"
+      stroke-linecap="round"
+      transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="22" font-weight="700" fill="#3b82d4" font-family="-apple-system,'Segoe UI',sans-serif">${pctLabel}</text>
+    <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">Complete</text>
+  </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Executive summary bullets (max 5, plain language)
+// ---------------------------------------------------------------------------
+function renderExecSummary() {
+  const bullets = [];
+
+  const activePct = Math.round((openCount / totalItems) * 100);
+  bullets.push(`<strong>${openCount} of ${totalItems} items (${activePct}%)</strong> remain open. ${followupCount} require immediate followup${assignedCount ? `; ${assignedCount} are actively assigned` : ""}.`);
+
+  if (categoryEntries.length > 0) {
+    const [topCat, topCatCount] = categoryEntries[0];
+    const topCatPct = Math.round(topCatCount / (totalItems - uncategorizedCount) * 100);
+    bullets.push(`The top failure category is <strong>${esc(topCat)}</strong>, representing <strong>${topCatPct}%</strong> of classified outages — a primary candidate for targeted reliability investment.`);
+  }
+
+  if (resiliencyItems.length > 0)
+    bullets.push(`<strong>${resiliencyItems.length} item${resiliencyItems.length !== 1 ? "s" : ""}</strong> carry a Resiliency APAR — these should be confirmed open and prioritised with the owning development teams.`);
+
+  if (uncategorizedCount > 0) {
+    const uncatPct = Math.round(uncategorizedCount / totalItems * 100);
+    bullets.push(`<strong>${uncategorizedCount} items (${uncatPct}%)</strong> are still unclassified — classification gaps reduce visibility into the leading failure drivers.`);
+  }
+
+  if (withoutDate.length > 0) {
+    const noDatePct = Math.round(withoutDate.length / totalItems * 100);
+    bullets.push(`<strong>${withoutDate.length} items (${noDatePct}%)</strong> lack an OA date, limiting year-over-year trend reporting.`);
+  }
+
+  const rows = bullets.map((b) => `<li>${b}</li>`).join("\n    ");
+  return `<ul class="exec-list">\n    ${rows}\n  </ul>`;
+}
+
+// ---------------------------------------------------------------------------
+// Assemble HTML
+// ---------------------------------------------------------------------------
+
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${esc(projectTitle)} — Leadership Summary</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2328; background: #ffffff; padding: 32px 16px 48px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+  a { color: #3b82d4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .audience-tag { display: inline-block; background: #eff6ff; border: 1px solid #93c5fd; color: #1e40af; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.03em; }
+  .kpi-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 20px; flex: 1; min-width: 110px; }
+  .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
+  .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+  .kpi.kpi-alert .num { color: #b45309; }
+  .two-col { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; }
+  .two-col .gauge-wrap { flex-shrink: 0; }
+  .two-col .chart-wrap { flex: 1; min-width: 260px; }
+  .exec-list { list-style: none; padding: 0; }
+  .exec-list li { padding: 10px 0 10px 22px; border-bottom: 1px solid #f3f4f6; position: relative; font-size: 13px; }
+  .exec-list li::before { content: "→"; position: absolute; left: 4px; color: #3b82d4; font-weight: 700; }
+  .exec-list li:last-child { border-bottom: none; }
+  .resil-toggle { display: inline-block; margin-top: 6px; }
+  .resil-toggle > details { border-left: 3px solid #d8b4fe; padding-left: 14px; }
+  .resil-toggle > details > summary { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; list-style: none; user-select: none; }
+  .resil-toggle > details > summary::-webkit-details-marker { display: none; }
+  .resil-toggle > details > summary::before { content: "▶"; font-size: 10px; color: #7c3aed; flex-shrink: 0; transition: transform 0.15s; }
+  .resil-toggle > details[open] > summary::before { transform: rotate(90deg); }
+  .resil-tile-btn { background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 6px; padding: 12px 20px; text-align: center; display: inline-block; }
+  .resil-tile-btn .num { font-size: 28px; font-weight: 700; color: #7c3aed; line-height: 1.1; }
+  .resil-tile-btn .lbl { font-size: 12px; color: #57606a; }
+  .resil-hint { font-size: 11px; color: #7c3aed; margin-top: 3px; }
+  .resil-table-wrap { padding-top: 10px; padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+  th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; white-space: nowrap; }
+  td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: middle; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .b-done     { background: #d1fae5; color: #065f46; }
+  .b-assigned { background: #dbeafe; color: #1e40af; }
+  .b-followup { background: #fef3c7; color: #92400e; }
+  .b-unset    { background: #fee2e2; color: #991b1b; }
+  .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
+  footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${esc(projectTitle)} — Leadership Summary</a> <span class="audience-tag">Leadership View</span></h1>
+  <div class="meta">Generated: ${generatedAt}  |  Source: GitHub Projects (GraphQL)  |  Board: <a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener"><strong>${esc(projectTitle)}</strong></a></div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="num">${totalItems}</div><div class="lbl">Total Outage Items</div></div>
+    <div class="kpi"><div class="num">${doneCount}</div><div class="lbl">Resolved</div></div>
+    <div class="kpi${followupCount > 0 ? " kpi-alert" : ""}"><div class="num">${followupCount}</div><div class="lbl">Followup Required</div></div>
+    <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></div>
+  </div>
+
+  <h2>Completion Rate &amp; Category Breakdown</h2>
+  <div class="two-col">
+    <div class="gauge-wrap">${renderGauge()}</div>
+    <div class="chart-wrap">
+      <p class="section-note">Top outage categories by volume${uncategorizedCount > 0 ? ` — ${uncategorizedCount} items unclassified` : ""}.</p>
+      ${renderCategoryChart()}
+    </div>
+  </div>
+
+  <h2>Resiliency APARs</h2>
+  <p class="section-note">Items that resulted in a formal resiliency APAR filing.</p>
+  <div class="resil-toggle">
+    <details>
+      <summary>
+        <div class="resil-tile-btn">
+          <div class="num">${resiliencyItems.length}</div>
+          <div class="lbl">Items with APAR</div>
+          <div class="resil-hint">Click to view all ▾</div>
+        </div>
+      </summary>
+      <div class="resil-table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>APAR(s)</th><th>Category</th></tr></thead>
+          <tbody>
+            ${resiliencyItems.map(item => {
+              const statusClass = {"Done":"b-done","Assigned":"b-assigned","Followup Required":"b-followup","Unset":"b-unset"}[item.status] || "b-unset";
+              const titleCell = item.issueUrl
+                ? `<a href="${esc(item.issueUrl)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
+                : esc(item.title);
+              return `<tr><td>${titleCell}</td><td><span class="badge ${statusClass}">${esc(item.status || "Unset")}</span></td><td>${esc(item.oaDates || "—")}</td><td>${esc(item.resiliencyApar || "—")}</td><td>${esc(item.outageCategory || "—")}</td></tr>`;
+            }).join("\n            ")}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+
+  <h2>Executive Summary</h2>
+  ${renderExecSummary()}
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>`;
+
+writeFileSync(outputPath, html, "utf8");
+console.log(`Leadership report written to ${outputPath}`);
