@@ -1,6 +1,6 @@
 ---
 name: outage-analysis-dev
-description: Use when the user asks to generate a developer-focused outage analysis report from the GitHub Projects board. Produces the full-detail report: all items, notes, uncategorized items, year/month breakdown, and drilldown modals.
+description: "Use when the user asks to generate a developer-focused outage analysis report from the GitHub Projects board. Produces the full-detail report: all items, notes, uncategorized items, year/month breakdown, and drilldown modals."
 ---
 
 # Outage Analysis Dashboard — Developer Report

@@ -1,6 +1,6 @@
 ---
 name: outage-analysis
-description: Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Produces an executive leadership summary: big-number KPIs, completion rate gauge, category bar chart, APAR snapshot, and plain-language executive summary bullets — no item-level detail.
+description: "Use when the user asks to summarize, analyze, or report on the Outage Analysis Team dashboard from GitHub Projects. Produces an executive leadership summary: big-number KPIs, completion rate gauge, category bar chart, APAR snapshot, and plain-language executive summary bullets - no item-level detail."
 ---
 
 # Outage Analysis Dashboard — Leadership Summary

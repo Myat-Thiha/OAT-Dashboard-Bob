@@ -1,6 +1,6 @@
 ---
 name: outage-analysis-mgr
-description: Use when the user asks to generate a manager-focused outage analysis report or manager summary from the GitHub Projects board. Produces a concise report with KPIs, status breakdown, category distribution, APAR grouping, and key observations — no item-level tables.
+description: "Use when the user asks to generate a manager-focused outage analysis report or manager summary from the GitHub Projects board. Produces a concise report with KPIs, status breakdown, category distribution, APAR grouping, and key observations - no item-level tables."
 ---
 
 # Outage Analysis Dashboard — Manager Report
