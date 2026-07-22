@@ -18,6 +18,7 @@
   .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
   .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
   .kpi.kpi-alert .num { color: #b45309; }
+  .kpi.kpi-unset .num { color: #6b7280; }
   .two-col { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; }
   .two-col .gauge-wrap { flex-shrink: 0; }
   .two-col .chart-wrap { flex: 1; min-width: 260px; }
@@ -25,18 +26,13 @@
   .exec-list li { padding: 10px 0 10px 22px; border-bottom: 1px solid #f3f4f6; position: relative; font-size: 13px; }
   .exec-list li::before { content: "→"; position: absolute; left: 4px; color: #3b82d4; font-weight: 700; }
   .exec-list li:last-child { border-bottom: none; }
-  /* Resiliency APAR toggle */
+  /* Resiliency APAR button */
   .resil-toggle { display: inline-block; margin-top: 6px; }
-  .resil-toggle > details { border-left: 3px solid #d8b4fe; padding-left: 14px; }
-  .resil-toggle > details > summary { display: flex; align-items: center; gap: 12px; padding: 10px 0; cursor: pointer; list-style: none; user-select: none; }
-  .resil-toggle > details > summary::-webkit-details-marker { display: none; }
-  .resil-toggle > details > summary::before { content: "▶"; font-size: 10px; color: #7c3aed; flex-shrink: 0; transition: transform 0.15s; }
-  .resil-toggle > details[open] > summary::before { transform: rotate(90deg); }
-  .resil-tile-btn { background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 6px; padding: 12px 20px; text-align: center; display: inline-block; }
+  .resil-tile-btn { background: #faf5ff; border: 1px solid #d8b4fe; border-radius: 6px; padding: 12px 20px; text-align: center; display: inline-block; cursor: pointer; font-family: inherit; transition: background 0.12s, box-shadow 0.12s; }
+  .resil-tile-btn:hover { background: #f3e8ff; box-shadow: 0 0 0 2px rgba(124,92,216,0.18); }
   .resil-tile-btn .num { font-size: 28px; font-weight: 700; color: #7c3aed; line-height: 1.1; }
   .resil-tile-btn .lbl { font-size: 12px; color: #57606a; }
   .resil-hint { font-size: 11px; color: #7c3aed; margin-top: 3px; }
-  .resil-table-wrap { padding-top: 10px; padding-bottom: 6px; }
   /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
   th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; white-space: nowrap; }
@@ -48,21 +44,22 @@
   .b-followup { background: #fef3c7; color: #92400e; }
   .b-unset    { background: #fee2e2; color: #991b1b; }
   .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
-  /* Year bars */
-  .year-bar-wrap { margin: 12px 0 4px; }
-  .year-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; cursor: pointer; border-radius: 4px; padding: 3px 4px; transition: background 0.12s; }
-  .year-bar-row:hover { background: #eff6ff; }
-  .year-bar-label { width: 34px; font-weight: 600; color: #1f2328; flex-shrink: 0; }
-  .year-bar-track { flex: 1; background: #e5e7eb; border-radius: 3px; height: 14px; }
-  .year-bar-fill { background: #3b82d4; height: 14px; border-radius: 3px; min-width: 3px; }
-  .year-bar-count { width: 52px; font-size: 12px; color: #3b82d4; text-align: right; flex-shrink: 0; font-weight: 600; }
-  .year-hint { font-size: 11px; color: #57606a; margin-bottom: 10px; }
-  .year-summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
-  .year-summary-table th { background: #f7f8fa; text-align: left; padding: 6px 10px; border: 1px solid #e5e7eb; font-weight: 600; font-size: 12px; }
-  .year-summary-table td { padding: 5px 10px; border: 1px solid #e5e7eb; }
-  .year-summary-table tr:nth-child(even) td { background: #fafbfc; }
-  .year-summary-table .yr-link { cursor: pointer; color: #3b82d4; font-weight: 700; }
-  .year-summary-table .yr-link:hover { text-decoration: underline; }
+  /* Year sections */
+  .year-section { margin-bottom: 20px; }
+  .year-section > details { border-left: 3px solid #e5e7eb; padding-left: 14px; }
+  .year-section > details > summary { display: flex; align-items: center; gap: 12px; padding: 6px 0; cursor: pointer; list-style: none; user-select: none; }
+  .year-section > details > summary::-webkit-details-marker { display: none; }
+  .year-section > details > summary::before { content: "▶"; font-size: 10px; color: #57606a; flex-shrink: 0; transition: transform 0.15s; }
+  .year-section > details[open] > summary::before { transform: rotate(90deg); }
+  .year-section > details > summary:hover .year-title { color: #3b82d4; }
+  .year-title { font-weight: 700; font-size: 14px; background: #f7f8fa; border: 1px solid #e5e7eb; padding: 4px 12px; border-radius: 4px; display: inline-block; }
+  .year-count { font-size: 12px; color: #57606a; }
+  .year-detail-wrap { padding-top: 8px; padding-bottom: 6px; }
+  .year-cats-table { width: auto; min-width: 280px; font-size: 12px; border-collapse: collapse; margin-bottom: 10px; }
+  .year-cats-table th { font-size: 11px; padding: 4px 8px; background: #f0f4ff; border: 1px solid #e5e7eb; font-weight: 600; }
+  .year-cats-table td { padding: 3px 8px; font-size: 12px; border: 1px solid #e5e7eb; }
+  .year-view-btn { display: inline-block; margin-top: 4px; padding: 4px 12px; font-size: 12px; font-weight: 600; color: #3b82d4; background: #eff6ff; border: 1px solid #93c5fd; border-radius: 4px; cursor: pointer; font-family: inherit; transition: background 0.12s; }
+  .year-view-btn:hover { background: #dbeafe; }
   /* Year items modal */
   .yr-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .yr-modal-overlay.open { display: flex; }
@@ -88,6 +85,7 @@
     <div class="kpi"><div class="num">162</div><div class="lbl">Resolved</div></div>
     <div class="kpi kpi-alert"><div class="num">19</div><div class="lbl">Followup Required</div></div>
     <div class="kpi"><div class="num">33</div><div class="lbl">In Progress</div></div>
+    <div class="kpi kpi-unset"><div class="num">30</div><div class="lbl">Assignment Pending</div></div>
   </div>
 
   <h2>Completion Rate &amp; Category Breakdown</h2>
@@ -103,7 +101,7 @@
     <text x="70" y="84" text-anchor="middle" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">Complete</text>
   </svg></div>
     <div class="chart-wrap">
-      <p class="section-note">Top outage categories by volume — 102 items unclassified.</p>
+      <p class="section-note">Top outage categories by volume.</p>
       
   <svg width="616" height="238" viewBox="0 0 616 238" role="img" aria-label="Category bar chart" style="max-width:100%;overflow:visible;">
     
@@ -159,15 +157,120 @@
   <h2>Resiliency APARs</h2>
   <p class="section-note">Items that resulted in a formal resiliency APAR filing.</p>
   <div class="resil-toggle">
+    <button class="resil-tile-btn" onclick="openAparModal()">
+      <div class="num">20</div>
+      <div class="lbl">Items with APAR</div>
+      <div class="resil-hint">Click to view all →</div>
+    </button>
+  </div>
+
+  <h2>Analysis by Year</h2>
+  <p class="section-note">Expand a year to see its category breakdown, then click "View all items" for the full list.</p>
+
+  <div class="year-section">
     <details>
-      <summary>
-        <div class="resil-tile-btn">
-          <div class="num">20</div>
-          <div class="lbl">Items with APAR</div>
-          <div class="resil-hint">Click to view all ▾</div>
-        </div>
-      </summary>
-      <div class="resil-table-wrap">
+      <summary><span class="year-title">2026 — 38 items</span></summary>
+      <div class="year-detail-wrap">
+        <table class="year-cats-table">
+          <thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead>
+          <tbody>
+            <tr><td>System memory issue (z/OS)</td><td style="text-align:right;">5</td></tr>
+            <tr><td>Application</td><td style="text-align:right;">4</td></tr>
+            <tr><td>System issue within Db2</td><td style="text-align:right;">4</td></tr>
+            <tr><td>Enhancement needed</td><td style="text-align:right;">4</td></tr>
+            <tr><td>Memory / storage overlay (Db2)</td><td style="text-align:right;">3</td></tr>
+            <tr><td>Code defect</td><td style="text-align:right;">2</td></tr>
+            <tr><td>Performance / hang related</td><td style="text-align:right;">2</td></tr>
+            <tr><td>User oversight</td><td style="text-align:right;">1</td></tr>
+          </tbody>
+        </table>
+        <button class="year-view-btn" onclick="openYearModal(2026)">View all 38 items →</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="year-section">
+    <details>
+      <summary><span class="year-title">2025 — 21 items</span></summary>
+      <div class="year-detail-wrap">
+        <table class="year-cats-table">
+          <thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead>
+          <tbody>
+            <tr><td>Code defect</td><td style="text-align:right;">6</td></tr>
+            <tr><td>System issue within Db2</td><td style="text-align:right;">4</td></tr>
+            <tr><td>Memory / storage overlay (Db2)</td><td style="text-align:right;">4</td></tr>
+            <tr><td>Lack of data - serviceability enhancement needed</td><td style="text-align:right;">3</td></tr>
+            <tr><td>Application</td><td style="text-align:right;">2</td></tr>
+            <tr><td>Performance / hang related</td><td style="text-align:right;">1</td></tr>
+            <tr><td>User oversight</td><td style="text-align:right;">1</td></tr>
+          </tbody>
+        </table>
+        <button class="year-view-btn" onclick="openYearModal(2025)">View all 21 items →</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="year-section">
+    <details>
+      <summary><span class="year-title">2024 — 18 items</span></summary>
+      <div class="year-detail-wrap">
+        <table class="year-cats-table">
+          <thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead>
+          <tbody>
+            <tr><td>Enhancement needed</td><td style="text-align:right;">7</td></tr>
+            <tr><td>Code defect</td><td style="text-align:right;">4</td></tr>
+            <tr><td>User oversight</td><td style="text-align:right;">3</td></tr>
+            <tr><td>Lack of data - serviceability enhancement needed</td><td style="text-align:right;">2</td></tr>
+            <tr><td>Memory / storage overlay (Db2)</td><td style="text-align:right;">2</td></tr>
+          </tbody>
+        </table>
+        <button class="year-view-btn" onclick="openYearModal(2024)">View all 18 items →</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="year-section">
+    <details>
+      <summary><span class="year-title">2023 — 48 items</span></summary>
+      <div class="year-detail-wrap">
+        <table class="year-cats-table">
+          <thead><tr><th>Category</th><th style="text-align:right;">Count</th></tr></thead>
+          <tbody>
+            <tr><td>Code defect</td><td style="text-align:right;">10</td></tr>
+            <tr><td>System issue within Db2</td><td style="text-align:right;">9</td></tr>
+            <tr><td>Enhancement needed</td><td style="text-align:right;">6</td></tr>
+            <tr><td>Memory / storage overlay (Db2)</td><td style="text-align:right;">6</td></tr>
+            <tr><td>Performance / hang related</td><td style="text-align:right;">4</td></tr>
+            <tr><td>Application</td><td style="text-align:right;">3</td></tr>
+            <tr><td>User oversight</td><td style="text-align:right;">2</td></tr>
+            <tr><td>Lack of data - serviceability enhancement needed</td><td style="text-align:right;">2</td></tr>
+            <tr><td>System memory issue (z/OS)</td><td style="text-align:right;">1</td></tr>
+          </tbody>
+        </table>
+        <button class="year-view-btn" onclick="openYearModal(2023)">View all 48 items →</button>
+      </div>
+    </details>
+  </div>
+
+  <!-- Year items modal -->
+  <div id="yr-modal" class="yr-modal-overlay" onclick="if(event.target===this)closeYearModal()">
+    <div class="yr-modal-box">
+      <div class="yr-modal-header">
+        <span id="yr-modal-title" class="yr-modal-title"></span>
+        <button class="yr-modal-close" onclick="closeYearModal()">✕</button>
+      </div>
+      <div id="yr-modal-body" class="yr-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- APAR modal -->
+  <div id="apar-modal" class="yr-modal-overlay" onclick="if(event.target===this)closeAparModal()">
+    <div class="yr-modal-box">
+      <div class="yr-modal-header">
+        <span class="yr-modal-title">Resiliency APARs — 20 Items</span>
+        <button class="yr-modal-close" onclick="closeAparModal()">✕</button>
+      </div>
+      <div class="yr-modal-body">
         <table>
           <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>APAR(s)</th><th>Category</th></tr></thead>
           <tbody>
@@ -194,79 +297,15 @@
           </tbody>
         </table>
       </div>
-    </details>
-  </div>
-
-  <h2>Analysis by Year</h2>
-  <p class="section-note">Based on OA Date field. 107 of 244 items (44%) have no OA date and are excluded. Click any year to view its items.</p>
-  <div class="year-bar-wrap">
-    <div class="year-bar-row" onclick="openYearModal(2020)">
-      <span class="year-bar-label">2020</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:12.5%"></div></div>
-      <span class="year-bar-count">6 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2021)">
-      <span class="year-bar-label">2021</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:2.1%"></div></div>
-      <span class="year-bar-count">1 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2022)">
-      <span class="year-bar-label">2022</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:10.4%"></div></div>
-      <span class="year-bar-count">5 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2023)">
-      <span class="year-bar-label">2023</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:100%"></div></div>
-      <span class="year-bar-count">48 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2024)">
-      <span class="year-bar-label">2024</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:37.5%"></div></div>
-      <span class="year-bar-count">18 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2025)">
-      <span class="year-bar-label">2025</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:43.8%"></div></div>
-      <span class="year-bar-count">21 →</span>
-    </div>
-    <div class="year-bar-row" onclick="openYearModal(2026)">
-      <span class="year-bar-label">2026</span>
-      <div class="year-bar-track"><div class="year-bar-fill" style="width:79.2%"></div></div>
-      <span class="year-bar-count">38 →</span>
-    </div>
-  </div>
-  <table class="year-summary-table">
-    <thead><tr><th>Year</th><th>Items</th><th>Top Category</th><th>Uncategorized</th></tr></thead>
-    <tbody>
-      <tr><td class="yr-link" onclick="openYearModal(2020)">2020</td><td>6</td><td>Lack of data - serviceability enhancement needed (2)</td><td>1</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2021)">2021</td><td>1</td><td>—</td><td>1</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2022)">2022</td><td>5</td><td>System issue within Db2 (2)</td><td>0</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2023)">2023</td><td>48</td><td>Code defect (10)</td><td>5</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2024)">2024</td><td>18</td><td>Enhancement needed (7)</td><td>0</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2025)">2025</td><td>21</td><td>Code defect (6)</td><td>0</td></tr>
-      <tr><td class="yr-link" onclick="openYearModal(2026)">2026</td><td>38</td><td>System memory issue (z/OS) (5)</td><td>13</td></tr>
-    </tbody>
-  </table>
-
-  <!-- Year items modal -->
-  <div id="yr-modal" class="yr-modal-overlay" onclick="if(event.target===this)closeYearModal()">
-    <div class="yr-modal-box">
-      <div class="yr-modal-header">
-        <span id="yr-modal-title" class="yr-modal-title"></span>
-        <button class="yr-modal-close" onclick="closeYearModal()">✕</button>
-      </div>
-      <div id="yr-modal-body" class="yr-modal-body"></div>
     </div>
   </div>
 
   <h2>Executive Summary</h2>
   <ul class="exec-list">
-    <li><strong>82 of 244 items (34%)</strong> remain open. 19 require immediate followup; 33 are actively assigned.</li>
+    <li><strong>162 of 244 items (66%)</strong> are resolved. 33 are actively in progress; 19 are flagged for immediate followup.</li>
     <li>The top failure category is <strong>System issue within Db2</strong>, representing <strong>20%</strong> of classified outages — a primary candidate for targeted reliability investment.</li>
-    <li><strong>20 items</strong> carry a Resiliency APAR — these should be confirmed open and prioritised with the owning development teams.</li>
-    <li><strong>102 items (42%)</strong> are still unclassified — classification gaps reduce visibility into the leading failure drivers.</li>
-    <li><strong>107 items (44%)</strong> lack an OA date, limiting year-over-year trend reporting.</li>
+    <li><strong>20 items</strong> have resulted in a formal Resiliency APAR — these are being tracked with the owning development teams to prevent recurrence.</li>
+    <li><strong>2023 was the peak year</strong> with 48 analysed outages; activity in 2024–2026 demonstrates continued team engagement across all major failure categories.</li>
   </ul>
 
   <footer>Made with IBM Bob</footer>
@@ -439,6 +478,14 @@ const YEARS = {
   ],
 };
 
+function openAparModal() {
+  document.getElementById("apar-modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+function closeAparModal() {
+  document.getElementById("apar-modal").classList.remove("open");
+  document.body.style.overflow = "";
+}
 function openYearModal(year) {
   const rows = YEARS[year];
   if (!rows) return;
@@ -454,7 +501,7 @@ function closeYearModal() {
   document.getElementById("yr-modal").classList.remove("open");
   document.body.style.overflow = "";
 }
-document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeYearModal(); });
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") { closeYearModal(); closeAparModal(); } });
 </script>
 </body>
 </html>

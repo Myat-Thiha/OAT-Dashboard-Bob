@@ -180,6 +180,7 @@ const html = `<!DOCTYPE html>
   .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
   .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
   .kpi.kpi-alert .num { color: #b45309; }
+  .kpi.kpi-unset .num { color: #6b7280; }
   .two-col { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; margin-top: 8px; }
   .two-col .gauge-wrap { flex-shrink: 0; }
   .two-col .chart-wrap { flex: 1; min-width: 260px; }
@@ -221,6 +222,7 @@ const html = `<!DOCTYPE html>
     <div class="kpi"><div class="num">${doneCount}</div><div class="lbl">Resolved</div></div>
     <div class="kpi${followupCount > 0 ? " kpi-alert" : ""}"><div class="num">${followupCount}</div><div class="lbl">Followup Required</div></div>
     <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></div>
+    ${(byStatus["Unset"] || 0) > 0 ? `<div class="kpi kpi-unset"><div class="num">${byStatus["Unset"]}</div><div class="lbl">Assignment Pending</div></div>` : ""}
   </div>
 
   <h2>Completion Rate &amp; Category Breakdown</h2>
