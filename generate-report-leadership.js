@@ -1,7 +1,7 @@
 // generate-report-leadership.js — Leadership executive OAT report
 // Sections: KPI summary (big-number tiles), Category bar chart (SVG),
 //           Completion rate gauge, Resiliency snapshot, Executive Summary bullets.
-// Omits all item-level detail — no tables, no drilldowns.
+// Category bars are clickable — opens a CSS :target modal with item detail.
 import { readFileSync, writeFileSync } from "fs";
 
 const args       = process.argv.slice(2);
@@ -38,9 +38,12 @@ for (const item of items) {
 }
 
 const byCategory = {};
+const byCategoryItems = {};
 for (const item of items) {
   const c = item.outageCategory || "(Uncategorized)";
   byCategory[c] = (byCategory[c] || 0) + 1;
+  if (!byCategoryItems[c]) byCategoryItems[c] = [];
+  byCategoryItems[c].push(item);
 }
 const uncategorizedCount = byCategory["(Uncategorized)"] || 0;
 const categoryEntries = Object.entries(byCategory)
@@ -48,7 +51,12 @@ const categoryEntries = Object.entries(byCategory)
   .sort((a, b) => b[1] - a[1]);
 
 const resiliencyItems = items
-  .filter((i) => i.resiliencyApar || (i.labels || []).includes("Resiliency Analysis"));
+  .filter((i) => i.resiliencyApar || (i.labels || []).includes("Resiliency Analysis"))
+  .sort((a, b) => {
+    const da = a.oaDates ? new Date(a.oaDates) : new Date(0);
+    const db = b.oaDates ? new Date(b.oaDates) : new Date(0);
+    return db - da;
+  });
 
 const doneCount     = byStatus["Done"] || 0;
 const followupCount = byStatus["Followup Required"] || 0;
@@ -65,8 +73,110 @@ const aparSet = new Set(
 );
 const aparCount = aparSet.size;
 
+// By-year aggregation (newest first) + per-year category counts
+const byYear = {};
+const byYearCategory = {};
+for (const item of items) {
+  if (!item.oaDates) continue;
+  const d = new Date(item.oaDates);
+  if (isNaN(d)) continue;
+  const yr = String(d.getUTCFullYear());
+  if (!byYear[yr]) byYear[yr] = { total: 0, done: 0, followup: 0, assigned: 0, items: [] };
+  byYear[yr].total++;
+  if (item.status === "Done")                   byYear[yr].done++;
+  else if (item.status === "Followup Required") byYear[yr].followup++;
+  else if (item.status === "Assigned")          byYear[yr].assigned++;
+  byYear[yr].items.push(item);
+  if (!byYearCategory[yr]) byYearCategory[yr] = {};
+  const cat = item.outageCategory || "—";
+  byYearCategory[yr][cat] = (byYearCategory[yr][cat] || 0) + 1;
+}
+const yearEntries = Object.entries(byYear).sort((a, b) => Number(b[0]) - Number(a[0]));
+const itemsWithDate = items.filter((i) => i.oaDates && !isNaN(new Date(i.oaDates))).length;
+
 // ---------------------------------------------------------------------------
-// SVG horizontal bar chart for top categories (max 10)
+// Per-year category bar chart (SVG, inline, compact)
+// ---------------------------------------------------------------------------
+function renderYearCats(yr) {
+  const cats = Object.entries(byYearCategory[yr] || {})
+    .filter(([c]) => c !== "—")
+    .sort((a, b) => b[1] - a[1]);
+  const uncategorized = (byYearCategory[yr] || {})["—"] || 0;
+  if (!cats.length && !uncategorized) return "";
+
+  const maxVal  = cats.length ? cats[0][1] : 1;
+  const barW    = 220;
+  const labelW  = 190;
+  const rowH    = 22;
+  const svgW    = labelW + barW + 50;
+  const svgH    = cats.length * rowH + 2;
+
+  const bars = cats.map(([c, n], idx) => {
+    const y    = idx * rowH;
+    const bLen = Math.max(2, Math.round(n / maxVal * barW));
+    const label = c.length > 28 ? c.slice(0, 26) + "…" : c;
+    return `<g transform="translate(0,${y})">
+      <text x="${labelW - 6}" y="15" font-size="11" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">${esc(label)}</text>
+      <rect x="${labelW}" y="4" width="${bLen}" height="12" rx="2" fill="#3b82d4" opacity="0.75"/>
+      <text x="${labelW + bLen + 5}" y="15" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">${n}</text>
+    </g>`;
+  }).join("");
+
+  return `<div class="year-cats">
+    <svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;overflow:visible;display:block;">${bars}</svg>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Year breakdown — dev-style collapsible sections with category summary + item table
+// ---------------------------------------------------------------------------
+function renderYearBreakdown() {
+  const noDateCount = totalItems - itemsWithDate;
+  const noDatePct   = Math.round(noDateCount / totalItems * 100);
+
+  if (!yearEntries.length) return `<p class="section-note">No OA dates recorded.</p>`;
+
+  const blocks = yearEntries.map(([yr, d]) => {
+    const resolvedPct = Math.round(d.done / d.total * 100);
+    const openCount   = d.total - d.done;
+
+    const itemRows = [...d.items]
+      .sort((a, b) => new Date(b.oaDates) - new Date(a.oaDates))
+      .map(item => {
+        const sc = {"Done":"b-done","Assigned":"b-assigned","Followup Required":"b-followup","Unset":"b-unset"}[item.status] || "b-unset";
+        const titleCell = item.issueUrl
+          ? `<a href="${esc(item.issueUrl)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
+          : esc(item.title);
+        return `<tr><td>${titleCell}</td><td><span class="badge ${sc}">${esc(item.status || "Unset")}</span></td><td style="white-space:nowrap;">${esc(item.oaDates || "—")}</td><td>${esc(item.outageCategory || "—")}</td></tr>`;
+      }).join("\n");
+
+    const statsLine = `<span class="badge b-done" style="margin-left:10px;">${d.done} resolved</span> <span style="font-size:11px;color:#57606a;margin-left:6px;">${resolvedPct}% resolve rate</span>`;
+
+    return `
+    <div class="year-section">
+      <details>
+        <summary><span class="year-title">${yr} — ${d.total} item${d.total !== 1 ? "s" : ""}</span>${statsLine}</summary>
+        ${renderYearCats(yr)}
+        <div class="month-table-wrap"><table>
+          <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Category</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table></div>
+      </details>
+    </div>`;
+  }).join("");
+
+  return `${blocks}`;
+}
+
+// ---------------------------------------------------------------------------
+// Slug helper for :target anchor IDs
+// ---------------------------------------------------------------------------
+function slugify(str) {
+  return "cat-" + str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// ---------------------------------------------------------------------------
+// SVG horizontal bar chart for top categories (max 10) — bars are links
 // ---------------------------------------------------------------------------
 function renderCategoryChart() {
   const entries = categoryEntries.slice(0, 10);
@@ -74,7 +184,7 @@ function renderCategoryChart() {
 
   const maxVal   = entries[0][1];
   const barW     = 380;
-  const rowH     = 26;
+  const rowH     = 30;
   const labelW   = 180;
   const countW   = 36;
   const chartH   = entries.length * rowH + 4;
@@ -83,20 +193,61 @@ function renderCategoryChart() {
     const y     = idx * rowH;
     const bLen  = Math.max(2, Math.round(n / maxVal * barW));
     const pct   = Math.round(n / totalItems * 100);
-    const barColor = "#3b82d4";
+    const slug  = slugify(cat);
+    const label = cat.length > 24 ? cat.slice(0, 22) + "…" : cat;
     return `
-  <g transform="translate(0,${y})">
-    <text x="${labelW - 8}" y="17" font-size="12" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">${esc(cat.length > 24 ? cat.slice(0, 22) + "…" : cat)}</text>
-    <rect x="${labelW}" y="6" width="${bLen}" height="14" rx="2" fill="${barColor}" opacity="0.85"/>
-    <text x="${labelW + bLen + 6}" y="17" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">${n} (${pct}%)</text>
-  </g>`;
+  <a href="#${slug}" style="text-decoration:none;">
+  <g transform="translate(0,${y})" class="bar-group" data-cat="${esc(cat)}">
+    <rect x="0" y="0" width="${labelW + barW + countW + 20}" height="${rowH}" fill="transparent"/>
+    <text x="${labelW - 8}" y="19" font-size="12" fill="#3b82d4" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif" text-decoration="underline">${esc(label)}</text>
+    <rect x="${labelW}" y="8" width="${bLen}" height="14" rx="2" fill="#3b82d4" opacity="0.85"/>
+    <text x="${labelW + bLen + 6}" y="19" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">${n} (${pct}%)</text>
+  </g>
+  </a>`;
   }).join("");
 
   const svgW = labelW + barW + countW + 20;
   return `
-  <svg width="${svgW}" height="${chartH}" viewBox="0 0 ${svgW} ${chartH}" role="img" aria-label="Category bar chart" style="max-width:100%;overflow:visible;">
+  <svg width="${svgW}" height="${chartH}" viewBox="0 0 ${svgW} ${chartH}" role="img" aria-label="Category bar chart" style="max-width:100%;overflow:visible;cursor:pointer;">
     ${bars}
   </svg>`;
+}
+
+// ---------------------------------------------------------------------------
+// Category modals (CSS :target — no JS required)
+// ---------------------------------------------------------------------------
+function renderCategoryModals() {
+  return categoryEntries.map(([cat, n]) => {
+    const slug  = slugify(cat);
+    const catItems = (byCategoryItems[cat] || []).sort((a, b) => {
+      const da = a.oaDates ? new Date(a.oaDates) : new Date(0);
+      const db = b.oaDates ? new Date(b.oaDates) : new Date(0);
+      return db - da;
+    });
+    const rows = catItems.map(item => {
+      const statusClass = {"Done":"b-done","Assigned":"b-assigned","Followup Required":"b-followup","Unset":"b-unset"}[item.status] || "b-unset";
+      const titleCell = item.issueUrl
+        ? `<a href="${esc(item.issueUrl)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
+        : esc(item.title);
+      return `<tr><td>${titleCell}</td><td><span class="badge ${statusClass}">${esc(item.status || "Unset")}</span></td><td style="white-space:nowrap;">${esc(item.oaDates || "—")}</td><td>${esc(item.assignees || "—")}</td></tr>`;
+    }).join("\n");
+
+    return `
+<div id="${slug}" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">${esc(cat)} <span class="modal-count">${n} item${n !== 1 ? "s" : ""}</span></span>
+      <a href="#" class="modal-close" aria-label="Close">✕</a>
+    </div>
+    <div class="modal-body">
+      <table>
+        <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Assignee</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>
+</div>`;
+  }).join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -130,27 +281,16 @@ function renderGauge() {
 function renderExecSummary() {
   const bullets = [];
 
-  const activePct = Math.round((openCount / totalItems) * 100);
-  bullets.push(`<strong>${openCount} of ${totalItems} items (${activePct}%)</strong> remain open. ${followupCount} require immediate followup${assignedCount ? `; ${assignedCount} are actively assigned` : ""}.`);
+  bullets.push(`The team has completed outage analysis on <strong>${doneCount} of ${totalItems} items (${donePct}%)</strong>${assignedCount ? `, with ${assignedCount} actively in progress` : ""}.`);
 
   if (categoryEntries.length > 0) {
     const [topCat, topCatCount] = categoryEntries[0];
     const topCatPct = Math.round(topCatCount / (totalItems - uncategorizedCount) * 100);
-    bullets.push(`The top failure category is <strong>${esc(topCat)}</strong>, representing <strong>${topCatPct}%</strong> of classified outages — a primary candidate for targeted reliability investment.`);
+    bullets.push(`The most thoroughly analysed category is <strong>${esc(topCat)}</strong>, accounting for <strong>${topCatPct}%</strong> of classified outages — demonstrating strong focus and domain expertise.`);
   }
 
   if (resiliencyItems.length > 0)
-    bullets.push(`<strong>${resiliencyItems.length} item${resiliencyItems.length !== 1 ? "s" : ""}</strong> carry a Resiliency APAR — these should be confirmed open and prioritised with the owning development teams.`);
-
-  if (uncategorizedCount > 0) {
-    const uncatPct = Math.round(uncategorizedCount / totalItems * 100);
-    bullets.push(`<strong>${uncategorizedCount} items (${uncatPct}%)</strong> are still unclassified — classification gaps reduce visibility into the leading failure drivers.`);
-  }
-
-  if (withoutDate.length > 0) {
-    const noDatePct = Math.round(withoutDate.length / totalItems * 100);
-    bullets.push(`<strong>${withoutDate.length} items (${noDatePct}%)</strong> lack an OA date, limiting year-over-year trend reporting.`);
-  }
+    bullets.push(`<strong>${resiliencyItems.length} item${resiliencyItems.length !== 1 ? "s" : ""}</strong> have been escalated to formal Resiliency APARs, reflecting proactive defect identification and follow-through.`);
 
   const rows = bullets.map((b) => `<li>${b}</li>`).join("\n    ");
   return `<ul class="exec-list">\n    ${rows}\n  </ul>`;
@@ -210,6 +350,46 @@ const html = `<!DOCTYPE html>
   .b-unset    { background: #fee2e2; color: #991b1b; }
   .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
   footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
+  .year-section { margin-bottom: 16px; }
+  .year-section > details { border-left: 3px solid #e5e7eb; padding-left: 14px; }
+  .year-section > details > summary { display: flex; align-items: center; gap: 8px; padding: 7px 0; cursor: pointer; list-style: none; user-select: none; flex-wrap: wrap; }
+  .year-section > details > summary::-webkit-details-marker { display: none; }
+  .year-section > details > summary::before { content: "▶"; font-size: 10px; color: #57606a; flex-shrink: 0; transition: transform 0.15s; }
+  .year-section > details[open] > summary::before { transform: rotate(90deg); }
+  .year-title { font-weight: 700; font-size: 14px; background: #f7f8fa; border: 1px solid #e5e7eb; padding: 4px 12px; border-radius: 4px; }
+  .month-table-wrap { padding-top: 8px; padding-bottom: 4px; }
+  .year-cats { margin: 8px 0 10px; }
+
+  /* ── Category modals (CSS :target, no JS) ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.45);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay:target { display: flex; }
+  .modal-box {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+    width: 100%; max-width: 780px; max-height: 80vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid #e5e7eb;
+    background: #f7f8fa; flex-shrink: 0;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: #1f2328; }
+  .modal-count { font-size: 12px; font-weight: 400; color: #57606a; margin-left: 8px; }
+  .modal-close {
+    font-size: 16px; color: #57606a; text-decoration: none;
+    line-height: 1; padding: 2px 6px; border-radius: 4px;
+    border: 1px solid transparent;
+  }
+  .modal-close:hover { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; text-decoration: none; }
+  .modal-body { overflow-y: auto; padding: 14px 18px; flex: 1; }
+  .bar-group:hover rect:not([fill="transparent"]) { opacity: 1; }
+  .chart-hint { font-size: 11px; color: #57606a; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -220,7 +400,7 @@ const html = `<!DOCTYPE html>
   <div class="kpi-row">
     <div class="kpi"><div class="num">${totalItems}</div><div class="lbl">Total Outage Items</div></div>
     <div class="kpi"><div class="num">${doneCount}</div><div class="lbl">Resolved</div></div>
-    <div class="kpi${followupCount > 0 ? " kpi-alert" : ""}"><div class="num">${followupCount}</div><div class="lbl">Followup Required</div></div>
+    <div class="kpi"><div class="num">${followupCount}</div><div class="lbl">In Review</div></div>
     <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></div>
     ${(byStatus["Unset"] || 0) > 0 ? `<div class="kpi kpi-unset"><div class="num">${byStatus["Unset"]}</div><div class="lbl">Assignment Pending</div></div>` : ""}
   </div>
@@ -229,10 +409,15 @@ const html = `<!DOCTYPE html>
   <div class="two-col">
     <div class="gauge-wrap">${renderGauge()}</div>
     <div class="chart-wrap">
-      <p class="section-note">Top outage categories by volume${uncategorizedCount > 0 ? ` — ${uncategorizedCount} items unclassified` : ""}.</p>
+      <p class="section-note">Top outage categories by volume. Click any bar to see items.</p>
       ${renderCategoryChart()}
+      <p class="chart-hint">Click a category label or bar to drill down.</p>
     </div>
   </div>
+
+  <h2>Analysis by Year</h2>
+  <p class="section-note">Outage items by OA date year, newest first. Click any row to see the full item list.</p>
+  ${renderYearBreakdown()}
 
   <h2>Resiliency APARs</h2>
   <p class="section-note">Items that resulted in a formal resiliency APAR filing.</p>
@@ -267,6 +452,8 @@ const html = `<!DOCTYPE html>
 
   <footer>Made with IBM Bob</footer>
 </div>
+
+${renderCategoryModals()}
 </body>
 </html>`;
 
