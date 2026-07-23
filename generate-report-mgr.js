@@ -1,7 +1,7 @@
 // generate-report-mgr.js — Manager-focused OAT report
 // Sections: KPI summary, Status Breakdown, Top Outage Categories,
-//           Resiliency APAR summary, Key Observations.
-// Omits: per-item tables, Analysis Notes, Uncategorized Items, Analysis by Year.
+//           Resiliency APAR summary, Analysis by Year, Key Observations.
+// Omits: per-item tables, Analysis Notes, Uncategorized Items.
 import { readFileSync, writeFileSync } from "fs";
 
 const args       = process.argv.slice(2);
@@ -71,18 +71,39 @@ const assignedCount = byStatus["Assigned"] || 0;
 const itemsWithDate = items.filter((i) => i.oaDates && !isNaN(new Date(i.oaDates))).length;
 const withoutDate   = items.filter((i) => !i.oaDates || isNaN(new Date(i.oaDates)));
 
+// By-year aggregation (newest first) + per-year category counts
+const byYear = {};
+const byYearCategory = {};
+for (const item of items) {
+  if (!item.oaDates) continue;
+  const d = new Date(item.oaDates);
+  if (isNaN(d)) continue;
+  const yr = String(d.getUTCFullYear());
+  if (!byYear[yr]) byYear[yr] = { total: 0, done: 0, items: [] };
+  byYear[yr].total++;
+  if (item.status === "Done") byYear[yr].done++;
+  byYear[yr].items.push(item);
+  if (!byYearCategory[yr]) byYearCategory[yr] = {};
+  const cat = item.outageCategory || "—";
+  byYearCategory[yr][cat] = (byYearCategory[yr][cat] || 0) + 1;
+}
+const yearEntries = Object.entries(byYear).sort((a, b) => Number(b[0]) - Number(a[0]));
+
 // ---------------------------------------------------------------------------
 // Section renderers
 // ---------------------------------------------------------------------------
 
 function renderKPIs() {
+  const unsetCount   = byStatus["Unset"] || 0;
+  const backlogCount = byStatus["Backlog"] || 0;
   return `
   <div class="kpi-row">
-    <div class="kpi"><div class="num">${totalItems}</div><div class="lbl">Total Items</div></div>
-    <div class="kpi"><div class="num">${doneCount}</div><div class="lbl">Done</div></div>
-    <div class="kpi"><div class="num">${followupCount}</div><div class="lbl">Followup Required</div></div>
-    <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">Assigned</div></div>
-    <div class="kpi"><div class="num">${resiliencyItems.length}</div><div class="lbl">Resiliency APARs</div></div>
+    <div class="kpi"><div class="num">${totalItems}</div><div class="lbl">Total Outage Items</div></div>
+    <div class="kpi"><div class="num">${doneCount}</div><div class="lbl">Resolved</div></div>
+    <div class="kpi"><div class="num">${followupCount}</div><div class="lbl">In Review</div></div>
+    <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></div>
+    ${unsetCount > 0 ? `<div class="kpi kpi-unset"><div class="num">${unsetCount}</div><div class="lbl">Assignment Pending</div></div>` : ""}
+    ${backlogCount > 0 ? `<div class="kpi"><div class="num" style="color:#374151;">${backlogCount}</div><div class="lbl">Backlog</div></div>` : ""}
   </div>`;
 }
 
@@ -181,6 +202,76 @@ function renderResiliency() {
   </table>`;
 }
 
+function renderYearCats(yr) {
+  const cats = Object.entries(byYearCategory[yr] || {})
+    .filter(([c]) => c !== "—")
+    .sort((a, b) => b[1] - a[1]);
+  const uncategorized = (byYearCategory[yr] || {})["—"] || 0;
+  if (!cats.length && !uncategorized) return "";
+
+  const maxVal = cats.length ? cats[0][1] : 1;
+  const barW   = 220;
+  const labelW = 190;
+  const rowH   = 22;
+  const svgW   = labelW + barW + 50;
+  const svgH   = cats.length * rowH + 2;
+
+  const bars = cats.map(([c, n], idx) => {
+    const y    = idx * rowH;
+    const bLen = Math.max(2, Math.round(n / maxVal * barW));
+    const label = c.length > 28 ? c.slice(0, 26) + "…" : c;
+    return `<g transform="translate(0,${y})">
+      <text x="${labelW - 6}" y="15" font-size="11" fill="#1f2328" text-anchor="end" font-family="-apple-system,'Segoe UI',sans-serif">${esc(label)}</text>
+      <rect x="${labelW}" y="4" width="${bLen}" height="12" rx="2" fill="#3b82d4" opacity="0.75"/>
+      <text x="${labelW + bLen + 5}" y="15" font-size="11" fill="#57606a" font-family="-apple-system,'Segoe UI',sans-serif">${n}</text>
+    </g>`;
+  }).join("");
+
+  return `<div class="year-cats">
+    <svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" style="max-width:100%;overflow:visible;display:block;">${bars}</svg>
+  </div>`;
+}
+
+function renderYearBreakdown() {
+  const noDateCount = totalItems - itemsWithDate;
+  const noDatePct   = Math.round(noDateCount / totalItems * 100);
+
+  if (!yearEntries.length) return `<p class="section-note">No OA dates recorded.</p>`;
+
+  const blocks = yearEntries.map(([yr, d]) => {
+    const resolvedPct = Math.round(d.done / d.total * 100);
+
+    const itemRows = [...d.items]
+      .sort((a, b) => new Date(b.oaDates) - new Date(a.oaDates))
+      .map(item => {
+        const sc = STATUS_BADGE[item.status] || "b-unset";
+        const titleCell = item.issueUrl
+          ? `<a href="${esc(item.issueUrl)}" target="_blank" rel="noopener">${esc(item.title)}</a>`
+          : esc(item.title);
+        return `<tr><td>${titleCell}</td><td><span class="badge ${sc}">${esc(item.status || "Unset")}</span></td><td style="white-space:nowrap;">${esc(item.oaDates || "—")}</td><td>${esc(item.outageCategory || "—")}</td></tr>`;
+      }).join("\n");
+
+    const statsLine = `<span class="badge b-done" style="margin-left:10px;">${d.done} resolved</span> <span style="font-size:11px;color:#57606a;margin-left:6px;">${resolvedPct}% resolve rate</span>`;
+
+    return `
+    <div class="year-section">
+      <details>
+        <summary><span class="year-title">${yr} — ${d.total} item${d.total !== 1 ? "s" : ""}</span>${statsLine}</summary>
+        ${renderYearCats(yr)}
+        <div class="month-table-wrap"><table>
+          <thead><tr><th>Title</th><th>Status</th><th>OA Date</th><th>Category</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table></div>
+      </details>
+    </div>`;
+  }).join("");
+
+  return `
+  <h2>Analysis by Year</h2>
+  <p class="section-note">Outage items by OA date year, newest first. Click any row to see the full item list.</p>
+  ${blocks}`;
+}
+
 function renderKeyObservations() {
   const obs = [];
 
@@ -232,9 +323,11 @@ const html = `<!DOCTYPE html>
   .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
   .audience-tag { display: inline-block; background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.03em; }
   .kpi-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
-  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 18px; flex: 1; min-width: 110px; text-align: left; }
-  .kpi .num { font-size: 26px; font-weight: 700; color: #3b82d4; }
-  .kpi .lbl { font-size: 12px; color: #57606a; }
+  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 20px; flex: 1; min-width: 110px; }
+  .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
+  .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+  .kpi.kpi-alert .num { color: #b45309; }
+  .kpi.kpi-unset .num { color: #6b7280; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
   th { background: #f7f8fa; text-align: left; padding: 7px 10px; border: 1px solid #e5e7eb; font-weight: 600; white-space: nowrap; }
   td { padding: 6px 10px; border: 1px solid #e5e7eb; vertical-align: middle; }
@@ -254,6 +347,15 @@ const html = `<!DOCTYPE html>
   .obs-list li::before { content: "•"; position: absolute; left: 6px; color: #3b82d4; font-weight: 700; }
   .obs-list li:last-child { border-bottom: none; }
   .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
+  .year-section { margin-bottom: 16px; }
+  .year-section > details { border-left: 3px solid #e5e7eb; padding-left: 14px; }
+  .year-section > details > summary { display: flex; align-items: center; gap: 8px; padding: 7px 0; cursor: pointer; list-style: none; user-select: none; flex-wrap: wrap; }
+  .year-section > details > summary::-webkit-details-marker { display: none; }
+  .year-section > details > summary::before { content: "▶"; font-size: 10px; color: #57606a; flex-shrink: 0; transition: transform 0.15s; }
+  .year-section > details[open] > summary::before { transform: rotate(90deg); }
+  .year-title { font-weight: 700; font-size: 14px; background: #f7f8fa; border: 1px solid #e5e7eb; padding: 4px 12px; border-radius: 4px; }
+  .month-table-wrap { padding-top: 8px; padding-bottom: 4px; }
+  .year-cats { margin: 8px 0 10px; }
   footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
 </style>
 </head>
@@ -266,6 +368,7 @@ const html = `<!DOCTYPE html>
   ${renderStatusBreakdown()}
   ${renderTopCategories()}
   ${renderResiliency()}
+  ${renderYearBreakdown()}
   ${renderKeyObservations()}
 
   <footer>Made with IBM Bob</footer>

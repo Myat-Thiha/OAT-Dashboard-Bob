@@ -196,11 +196,12 @@ function suggestCategory(title) {
 function renderKPIs() {
   return `
   <div class="kpi-row">
-    <button class="kpi" onclick="openKpiModal('all')"><div class="num">${totalItems}</div><div class="lbl">Total items</div></button>
-    <button class="kpi" onclick="openKpiModal('done')"><div class="num">${doneCount}</div><div class="lbl">Done</div></button>
-    <button class="kpi" onclick="openKpiModal('followup')"><div class="num">${followupCount}</div><div class="lbl">Followup Required</div></button>
-    <button class="kpi" onclick="openKpiModal('assigned')"><div class="num">${assignedCount}</div><div class="lbl">Assigned</div></button>
-    <button class="kpi" onclick="openKpiModal('withdate')"><div class="num">${itemsWithDate}</div><div class="lbl">Items with OA dates</div></button>
+    <button class="kpi" onclick="openKpiModal('all')"><div class="num">${totalItems}</div><div class="lbl">Total Outage Items</div></button>
+    <button class="kpi" onclick="openKpiModal('done')"><div class="num">${doneCount}</div><div class="lbl">Resolved</div></button>
+    <button class="kpi" onclick="openKpiModal('followup')"><div class="num">${followupCount}</div><div class="lbl">In Review</div></button>
+    <button class="kpi" onclick="openKpiModal('assigned')"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></button>
+    ${(byStatus["Unset"] || 0) > 0 ? `<button class="kpi kpi-unset" onclick="openKpiModal('status:Unset')"><div class="num">${byStatus["Unset"] || 0}</div><div class="lbl">Assignment Pending</div></button>` : ""}
+    ${(byStatus["Backlog"] || 0) > 0 ? `<button class="kpi" onclick="openKpiModal('status:Backlog')"><div class="num" style="color:#374151;">${byStatus["Backlog"] || 0}</div><div class="lbl">Backlog</div></button>` : ""}
   </div>
   <div id="kpi-modal" class="kpi-modal-overlay" onclick="if(event.target===this)closeKpiModal()">
     <div class="kpi-modal-box">
@@ -449,14 +450,17 @@ const html = `<!DOCTYPE html>
   body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; color: #1f2328; background: #ffffff; padding: 32px 16px 48px; }
   .container { max-width: 760px; margin: 0 auto; }
   h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .audience-tag { display: inline-block; background: #fdf4ff; border: 1px solid #e9d5ff; color: #6b21a8; font-size: 11px; font-weight: 600; border-radius: 10px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.03em; }
   h2 { font-size: 16px; font-weight: 700; margin: 32px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
   h3 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: #1f2328; }
   .meta { color: #57606a; font-size: 13px; margin-bottom: 24px; }
   .kpi-row { display: flex; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
-  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 18px; flex: 1; min-width: 120px; cursor: pointer; text-align: left; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
+  .kpi { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 20px; flex: 1; min-width: 110px; cursor: pointer; text-align: left; font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
   .kpi:hover { border-color: #3b82d4; box-shadow: 0 0 0 2px rgba(59,130,212,0.15); }
-  .kpi .num { font-size: 26px; font-weight: 700; color: #3b82d4; }
-  .kpi .lbl { font-size: 12px; color: #57606a; }
+  .kpi .num { font-size: 32px; font-weight: 700; color: #3b82d4; line-height: 1.1; }
+  .kpi .lbl { font-size: 12px; color: #57606a; margin-top: 2px; }
+  .kpi.kpi-alert .num { color: #b45309; }
+  .kpi.kpi-unset .num { color: #6b7280; }
   .kpi-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
   .kpi-modal-overlay.open { display: flex; }
   .kpi-modal-box { background: #fff; border-radius: 8px; width: 100%; max-width: 820px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); display: flex; flex-direction: column; max-height: calc(100vh - 80px); }
@@ -529,7 +533,7 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
 <div class="container">
-al  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${esc(projectTitle)} — Dashboard Summary</a></h1>
+  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${esc(projectTitle)} — Dashboard Summary</a> <span class="audience-tag">OAT-Team View</span></h1>
   <div class="meta">Generated: ${generatedAt}  |  Source: GitHub Projects (GraphQL)  |  Board: <a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" rel="noopener"><strong>${esc(projectTitle)}</strong></a></div>
 
   ${renderKPIs()}
@@ -569,9 +573,9 @@ al  <h1><a href="https://github.ibm.com/orgs/Db2z/projects/32" target="_blank" r
 
   var LABELS = {
     all:      "All Items",
-    done:     "Done",
-    followup: "Followup Required",
-    assigned: "Assigned",
+    done:     "Resolved",
+    followup: "In Review",
+    assigned: "In Progress",
     withdate: "Items with OA Dates"
   };
 

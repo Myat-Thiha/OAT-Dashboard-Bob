@@ -348,6 +348,7 @@ const html = `<!DOCTYPE html>
   .b-assigned { background: #dbeafe; color: #1e40af; }
   .b-followup { background: #fef3c7; color: #92400e; }
   .b-unset    { background: #fee2e2; color: #991b1b; }
+  .b-backlog  { background: #f3f4f6; color: #374151; }
   .section-note { font-size: 12px; color: #57606a; margin-bottom: 6px; }
   footer { margin-top: 48px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #57606a; }
   .year-section { margin-bottom: 16px; }
@@ -403,6 +404,7 @@ const html = `<!DOCTYPE html>
     <div class="kpi"><div class="num">${followupCount}</div><div class="lbl">In Review</div></div>
     <div class="kpi"><div class="num">${assignedCount}</div><div class="lbl">In Progress</div></div>
     ${(byStatus["Unset"] || 0) > 0 ? `<div class="kpi kpi-unset"><div class="num">${byStatus["Unset"]}</div><div class="lbl">Assignment Pending</div></div>` : ""}
+    ${(byStatus["Backlog"] || 0) > 0 ? `<div class="kpi"><div class="num" style="color:#374151;">${byStatus["Backlog"]}</div><div class="lbl">Backlog</div></div>` : ""}
   </div>
 
   <h2>Completion Rate &amp; Category Breakdown</h2>
